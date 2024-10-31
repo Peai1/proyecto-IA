@@ -1,0 +1,21 @@
+Calidad total	#Clientes atendidos	#Vehículos	Tiempo de ejecución [s]
+5091.92	47	18	0.00325618
+
+Ruta camión #1	do-c37-c8-c9-c32-c12-c41-f4-c16-do	Distancia recorrida: 276.04	Tiempo transcurrido: 639.06	Distancia excedida: No
+Ruta camión #2	do-c6-c18-c30-c15-c5-do	Distancia recorrida: 190.294	Tiempo transcurrido: 435.441	Distancia excedida: No
+Ruta camión #3	do-c19-c50-c22-c21-do	Distancia recorrida: 197.024	Tiempo transcurrido: 415.536	Distancia excedida: No
+Ruta camión #4	do-c4-c23-f2-c45-c29-c44-c39-c11-do	Distancia recorrida: 283.295	Tiempo transcurrido: 649.942	Distancia excedida: No
+Ruta camión #5	do-c46-do	Distancia recorrida: 185.604	Tiempo transcurrido: 308.405	Distancia excedida: No
+Ruta camión #6	do-c28-c10-f3-c26-do	Distancia recorrida: 296.188	Tiempo transcurrido: 549.282	Distancia excedida: No
+Ruta camión #7	do-c17-f9-c38-do	Distancia recorrida: 381.646	Tiempo transcurrido: 647.469	Distancia excedida: Sí
+Ruta camión #8	do-c24-f6-do	Distancia recorrida: 234.446	Tiempo transcurrido: 396.669	Distancia excedida: No
+Ruta camión #9	do-c25-f6-do	Distancia recorrida: 235.103	Tiempo transcurrido: 397.655	Distancia excedida: No
+Ruta camión #10	do-c49-f13-c48-f13-do	Distancia recorrida: 346.404	Tiempo transcurrido: 609.607	Distancia excedida: Sí
+Ruta camión #11	do-c43-f2-c40-f17-do	Distancia recorrida: 349.773	Tiempo transcurrido: 614.66	Distancia excedida: Sí
+Ruta camión #12	do-c13-f20-c2-c34-c14-do	Distancia recorrida: 323.513	Tiempo transcurrido: 620.269	Distancia excedida: Sí
+Ruta camión #13	do-c20-f17-c42-c33-do	Distancia recorrida: 323.023	Tiempo transcurrido: 589.534	Distancia excedida: Sí
+Ruta camión #14	do-c3-do	Distancia recorrida: 283.392	Tiempo transcurrido: 455.088	Distancia excedida: No
+Ruta camión #15	do-c27-do	Distancia recorrida: 290.197	Tiempo transcurrido: 465.295	Distancia excedida: No
+Ruta camión #16	do-c36-do	Distancia recorrida: 297.977	Tiempo transcurrido: 476.965	Distancia excedida: No
+Ruta camión #17	do-c35-do	Distancia recorrida: 299	Tiempo transcurrido: 478.5	Distancia excedida: No
+Ruta camión #18	do-c47-do	Distancia recorrida: 299	Tiempo transcurrido: 478.5	Distancia excedida: No
