@@ -22,7 +22,7 @@ struct Nodo {
 
 struct RutaVehiculo{
 	vector<nodeKey> route;
-	double vehicleAcumTime = 0;
+	double vehicletiempoVehiculoAcumulado = 0;
 	double vehicleSolQuality = 0;
 	int vehicleClients = 0;
 };
@@ -97,61 +97,70 @@ Instancia* leerInstancia(const string &nombreArchivo) {
     return instancia;
 }
 
-// Busca una ruta desde el nodo actual hacia el depot
-// 1) Puede ser una ruta directa nodo->depot
-// 2) Puede ser una ruta con AFS intermediario: nodo->AFS->depot
-void verificarRegreso(double acumDist, double acumTime, double longitudActual, double latitudActual, const Instancia* instancia,
-					  int& AFsID, double& timeToAFS, double& distanciaAFS, double& distanciaAFsDeposito) {
+// Busca una ruta desde el nodo actual hacia el deposito a traves de un AFS
+int verificarRegreso(double distanciaVehiculoAcumulada, double tiempoVehiculoAcumulado, double longitudActual, double latitudActual, const Instancia* instancia,
+					double& tiempoAFS, double& distanciaAFS, double& distanciaAFsDeposito) {
+	Nodo nodoAuxiliar;
     double distanciaMinimaEncontrada = 9999999;
-	double extraTime = 0;
-	double dist1, dist2;
-	double longitudNodoNext, latitudNodoNext, lon3, lat3;
-	double subrouteDistance = 0;
-	double subrouteTime = 0;
+	double distanciaAux1, distanciaAux2;
+	double longitudDeposito, latitudDeposito;
+	double distanciaAuxTotal = 0;
+	double tiempoAux = 0;
 	// Longitude & Latitude of the depot node
-	longitudNodoNext = instancia->deposito.longitud;
-	latitudNodoNext = instancia->deposito.latitud;
+	longitudDeposito = instancia->deposito.longitud;
+	latitudDeposito = instancia->deposito.latitud;
 
-	AFsID = -1;  // Inicialización indicando que no se encontró una estación de servicio válida
-    timeToAFS = 0;
+	int AFsID = -1;  // Inicialización indicando que no se encontró una estación de servicio válida
+    tiempoAFS = 0;
     distanciaAFS = 0;
     distanciaAFsDeposito = 0;
 
-	Nodo nodoAuxiliar;
 	for(int i = 0; i < instancia->numEstaciones; i++) {
 		nodoAuxiliar = instancia->nodosEstaciones[i];
-		subrouteDistance = 0;
-		subrouteTime = 0;
-		lon3 = nodoAuxiliar.longitud;
-		lat3 = nodoAuxiliar.latitud;
+		distanciaAuxTotal = 0;
+		tiempoAux = 0;
+
 		// Distancia entre el nodo actual y el AFS
-		dist1 = calcularDistanciaHaversine(longitudActual, latitudActual, lon3, lat3);
-		// Se puede viajar al AFS?
-		if(dist1 + acumDist <= instancia->distanciaMaxima) {
-			subrouteTime = dist1/instancia->velocidad + instancia->tiempoServicio;
-			// Hay suficiente tiempo para viajar y terminar la ruta?
-			if(acumTime + subrouteTime < instancia->tiempoMaximo) {
-				// Distance between chosen AFS and depot
-				dist2 = calcularDistanciaHaversine(lon3, lat3, longitudNodoNext, latitudNodoNext);
-				// Can  travel to the depot?
-				if(dist2 <= instancia->distanciaMaxima) {
-					// Just enough time to travel and finish the route?
-					subrouteTime += dist2/instancia->velocidad;
-					if(acumTime + subrouteTime <= instancia->tiempoMaximo) {
-						subrouteDistance = dist1 + dist2;
-						if(subrouteDistance < distanciaMinimaEncontrada) {
-							distanciaMinimaEncontrada = subrouteDistance; // minimum cost found
-							// {AFS_Id, Time}, {Distance to the AFS, Distance from AFS to Depot}
+		distanciaAux1 = calcularDistanciaHaversine(longitudActual, latitudActual, nodoAuxiliar.longitud, nodoAuxiliar.latitud);
+
+		// If se puede viajar al AFS con el combustible restante
+		if(distanciaAux1 + distanciaVehiculoAcumulada <= instancia->distanciaMaxima) {
+
+			// Tiempo para llegar al AFS + tiempo de servicio en el AFS
+			tiempoAux = distanciaAux1/instancia->velocidad + instancia->tiempoServicio;
+
+			// Tiempo acumulado + tiempo para llegar al AFS + tiempo de servicio en el AFS <= tiempo maximo
+			if(tiempoVehiculoAcumulado + tiempoAux < instancia->tiempoMaximo) {
+
+				// Distancia entre el AFS y el deposito
+				distanciaAux2 = calcularDistanciaHaversine(nodoAuxiliar.longitud, nodoAuxiliar.latitud, longitudDeposito, latitudDeposito);
+
+				// If se puede regresar al deposito desde el AFS
+				if(distanciaAux2 <= instancia->distanciaMaxima) {
+					
+					// Tiempo para regresar al deposito
+					tiempoAux += distanciaAux2/instancia->velocidad;
+
+					// Tiempo acumulado + tiempo para llegar al AFS + tiempo de servicio en el AFS + tiempo para regresar al deposito <= tiempo maximo
+					if(tiempoVehiculoAcumulado + tiempoAux <= instancia->tiempoMaximo) {
+
+						// Calcular la distancia total de la ruta
+						distanciaAuxTotal = distanciaAux1 + distanciaAux2;
+
+						// If la distancia total de la ruta es menor a la distancia minima encontrada
+						if(distanciaAuxTotal < distanciaMinimaEncontrada) {
+							distanciaMinimaEncontrada = distanciaAuxTotal; 
 							AFsID = nodoAuxiliar.id;
-							timeToAFS = subrouteTime;
-							distanciaAFS = dist1;
-							distanciaAFsDeposito = dist2;
+							tiempoAFS = tiempoAux;
+							distanciaAFS = distanciaAux1;
+							distanciaAFsDeposito = distanciaAux2;
 						}
 					}
 				}
 			}
 		}
 	}
+	return AFsID;
 }
 
 RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodosClientesVisitados) {
@@ -162,23 +171,28 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	nodeKey curKey = {nodoActual.tipo, nodoActual.id};
 	rutaVehiculoGreedy.push_back(curKey);
 
-	double calidadRuta = 0, tiempoEnRuta = 0;
-	double distanciaProximoCliente = 0, distanciaVehiculoAcumulada = 0, distanciaAlDeposito = 0;
+	double calidadRuta = 0;
+	double tiempoVehiculoAcumulado = 0;
+	double distanciaProximoCliente = 0;
+	double distanciaVehiculoAcumulada = 0;
+	double distanciaAlDeposito = 0;
 	double distanciaMinimaEncontrada = 9999999;
-	double latitudActual, longitudActual, latitudNodoNext, longitudNodoNext, longitudDeposito, latitudDeposito;
-	double auxTime = 0, nodoActualTime = 0;
-	double finalReturnTime = 0, finalReturnDist = 0;
-	int flagRefuel = 1, flagTerminate = 1, puedeRetornarDeposito = 0;
+	double latitudActual, longitudActual;
+	double latitudNodoNext, longitudNodoNext;
+	double tiempoAFS; // tiempo a la estacion de servicio para regresar
+	double distanciaAFS; // distancia a la estacion de servicio para regresar
+	double distanciaAFsDeposito; // distancia de la estacion de servicio al deposito para regresar
+	double auxTime = 0, tiempoSiguienteNodo = 0;
+	double tiempoFinalRegreso = 0, distanciaFinalRegreso = 0;
+	int necesitaRepostar = 1, terminarCiclo = 1, puedeRetornarDeposito = 0;
 	int totalClientes = 0;
+	int AFsID; // ID de la estacion de servicio para regresar al deposito
 
 	// Longitud y latitud del deposito
-	longitudDeposito = nodoActual.longitud;
-	latitudDeposito = nodoActual.latitud;
+	double longitudDeposito = nodoActual.longitud;
+	double latitudDeposito = nodoActual.latitud;
 
-	double timeToAFS, distanciaAFS, distanciaAFsDeposito; // tiempo a la estacion de servicio, distancia a la estacion de servicio, distancia de la estacion de servicio al deposito
-	int AFsID; // AFS id para regresar al deposito
-
-	while(tiempoEnRuta < instancia->tiempoMaximo) {
+	while(tiempoVehiculoAcumulado < instancia->tiempoMaximo) {
 
 		// Recorrer todos los nodos clientes hasta encontrar el mas cercano
 		for(int i = 0; i < instancia->numClientes; i++) {
@@ -190,42 +204,51 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				// Calcular distancia entre el nodo actual y el siguiente nodo cliente posible a visitar
 				distanciaProximoCliente = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, nodoAuxiliar.longitud, nodoAuxiliar.latitud);	
 
-				// Se puede viajar al nodo cliente desde el nodo actual?
-				if(distanciaProximoCliente < distanciaMinimaEncontrada && distanciaVehiculoAcumulada+distanciaProximoCliente < instancia->distanciaMaxima) {
+				// If se encuentra un nodo mas cercano y la distancia acumulada no excede la distancia maxima del vehiculo
+				if(distanciaProximoCliente < distanciaMinimaEncontrada && distanciaVehiculoAcumulada + distanciaProximoCliente < instancia->distanciaMaxima) {
 
 					// Distancia al deposito
 					distanciaAlDeposito = calcularDistanciaHaversine(longitudDeposito, latitudDeposito, nodoAuxiliar.longitud, nodoAuxiliar.latitud);
-					verificarRegreso(distanciaVehiculoAcumulada + distanciaProximoCliente, tiempoEnRuta, nodoAuxiliar.longitud, nodoAuxiliar.latitud, instancia, AFsID, timeToAFS, distanciaAFS, distanciaAFsDeposito);
-					
-					// Verificar si se puede regresar desde nodo actual a deposito
-					if (AFsID != -1) {
+
+					// Verificar si se puede regresar al deposito desde el nodo actual + al que se piensa mover
+					if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAlDeposito <= instancia->distanciaMaxima) {
 						puedeRetornarDeposito = 1;
 
-						// Se puede regresar directamente al deposito
-						if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAlDeposito <= instancia->distanciaMaxima) {
-							auxTime = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
-							if (auxTime + tiempoEnRuta + distanciaAlDeposito / instancia->velocidad <= instancia->tiempoMaximo) {
-								nodoSiguiente = nodoAuxiliar;
-								distanciaMinimaEncontrada = distanciaProximoCliente;
-								nodoActualTime = auxTime;
-								flagRefuel = 0;
-								flagTerminate = 0;
-								finalReturnDist = distanciaAlDeposito;
-								finalReturnTime = distanciaAlDeposito / instancia->velocidad;
-							}
-						}
+						// Tiempo para llegar a nodo cliente + tiempo de servicio de atender al cliente
+						auxTime = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
 
-						// Verificar si se regresa al deposito por la ruta nodo -> AFS -> deposito
-						else if (distanciaAFS + distanciaAFsDeposito < distanciaAlDeposito && distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS <= instancia->distanciaMaxima) {
-							auxTime = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
-							if (auxTime + tiempoEnRuta + timeToAFS <= instancia->tiempoMaximo) {
-								nodoSiguiente = nodoAuxiliar;
-								distanciaMinimaEncontrada = distanciaProximoCliente;
-								nodoActualTime = auxTime;
-								flagRefuel = 0;
-								flagTerminate = 0;
-								finalReturnTime = timeToAFS;
-								finalReturnDist = distanciaAFS + distanciaAFsDeposito;
+						// auxTime + tiempo acumulado del vehiculo + tiempo para regresar al deposito <= tiempo maximo
+						if (auxTime + tiempoVehiculoAcumulado + (distanciaAlDeposito / instancia->velocidad) <= instancia->tiempoMaximo) {
+							nodoSiguiente = nodoAuxiliar;
+							distanciaMinimaEncontrada = distanciaProximoCliente;
+							tiempoSiguienteNodo = auxTime;
+							necesitaRepostar = 0;
+							terminarCiclo = 0;
+							distanciaFinalRegreso = distanciaAlDeposito;
+							tiempoFinalRegreso = distanciaAlDeposito / instancia->velocidad;
+						}
+					}
+					
+					// Si no se puede regresar directamente al deposito, intenta buscar una estacion de servicio para devolverse
+					else {
+						AFsID = verificarRegreso(distanciaVehiculoAcumulada + distanciaProximoCliente, tiempoVehiculoAcumulado, nodoAuxiliar.longitud, nodoAuxiliar.latitud, instancia, tiempoAFS, distanciaAFS, distanciaAFsDeposito);
+
+						if (AFsID != -1) {
+							puedeRetornarDeposito = 1;
+
+							if (distanciaAFS + distanciaAFsDeposito < distanciaAlDeposito && distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS <= instancia->distanciaMaxima) {
+								
+								auxTime = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
+
+								if (auxTime + tiempoVehiculoAcumulado + tiempoAFS <= instancia->tiempoMaximo) {
+									nodoSiguiente = nodoAuxiliar;
+									distanciaMinimaEncontrada = distanciaProximoCliente;
+									tiempoSiguienteNodo = auxTime;
+									necesitaRepostar = 0;
+									terminarCiclo = 0;
+									tiempoFinalRegreso = tiempoAFS;
+									distanciaFinalRegreso = distanciaAFS + distanciaAFsDeposito;
+								}
 							}
 						}
 					}
@@ -233,59 +256,66 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 			}
 		}
 
-		// Si no encuentra algun cliente donde viajar, intenta buscar una estacion de servicio (solo si el ultimo nodo visitado NO fue una estacion de servicio)
-		if(flagRefuel && rutaVehiculoGreedy.back().first != 'f') {
-			verificarRegreso(distanciaVehiculoAcumulada, tiempoEnRuta, nodoActual.longitud, nodoActual.latitud, instancia, AFsID, timeToAFS, distanciaAFS, distanciaAFsDeposito);
+		// Si no encuentra algun cliente donde viajar, intenta buscar una estacion de servicio (si el ultimo nodo visitado no fue una estacion de servicio)
+		if(necesitaRepostar && rutaVehiculoGreedy.back().first != 'f') {
+
+			// Verificar si se puede regresar al deposito desde el nodo actual
+			AFsID = verificarRegreso(distanciaVehiculoAcumulada, tiempoVehiculoAcumulado, nodoActual.longitud, nodoActual.latitud, instancia, tiempoAFS, distanciaAFS, distanciaAFsDeposito);
+			
 			if(AFsID != -1) {
 				puedeRetornarDeposito = 1;
 				nodoSiguiente = instancia->nodosEstaciones[AFsID];
 				distanciaMinimaEncontrada = distanciaAFS;
-				nodoActualTime = instancia->tiempoRecarga + distanciaAFS / instancia->velocidad;
-				flagTerminate = 0;
+				tiempoSiguienteNodo = instancia->tiempoRecarga + (distanciaAFS / instancia->velocidad);
+				terminarCiclo = 0;
 				distanciaVehiculoAcumulada = 0;
+
+				// Si es distinto del deposito
 				if(AFsID != 0) {
-					finalReturnTime = distanciaAFsDeposito/instancia->velocidad;
-					finalReturnDist = distanciaAFsDeposito;
+					tiempoFinalRegreso = distanciaAFsDeposito/instancia->velocidad;
+					distanciaFinalRegreso = distanciaAFsDeposito;
 				}
+
+				// Si la estacion de servicio es el deposito
 				else {
-					finalReturnTime = distanciaAFS/instancia->velocidad;
-					finalReturnDist = distanciaAFS;
+					tiempoFinalRegreso = distanciaAFS/instancia->velocidad;
+					distanciaFinalRegreso = distanciaAFS;
 				}
 			}
 		}
-		if(flagTerminate) break;
-		if(!puedeRetornarDeposito) break;
+		if(terminarCiclo || !puedeRetornarDeposito) break;
 
-		if(!flagRefuel) {
+		if(!necesitaRepostar) 
 			nodosClientesVisitados[nodoSiguiente.id-1] = 1;
-		}
-		tiempoEnRuta += nodoActualTime;
+		
+		distanciaVehiculoAcumulada += distanciaMinimaEncontrada;
+		tiempoVehiculoAcumulado += tiempoSiguienteNodo;
 		distanciaVehiculoAcumulada += distanciaMinimaEncontrada;
 		calidadRuta += distanciaMinimaEncontrada;
-		distanciaVehiculoAcumulada += distanciaMinimaEncontrada;
 		distanciaMinimaEncontrada = 9999999;
-		flagRefuel = 1;
-		flagTerminate = 1;
+		necesitaRepostar = 1;
+		terminarCiclo = 1;
 		puedeRetornarDeposito = 0;
 		nodoActual = nodoSiguiente;
-		if(nodoSiguiente.tipo == 'c') totalClientes++;
+		if(nodoSiguiente.tipo == 'c') 
+			totalClientes++;
 		rutaVehiculoGreedy.push_back({nodoSiguiente.tipo, nodoSiguiente.id});
 	}
-	// When last visited node is f0, dont count in the refuel time
-	// exchange f0 with d0
+	
+	// Si el ultimo nodo visitado fue una estacion de servicio y era el deposito, se elimina y se resta el tiempo de recarga
 	if(rutaVehiculoGreedy.back().first == 'f' && rutaVehiculoGreedy.back().second == 0) {
 		rutaVehiculoGreedy.pop_back();
-		tiempoEnRuta -= instancia->tiempoRecarga;
-		finalReturnTime = 0;
-		finalReturnDist = 0;
+		tiempoVehiculoAcumulado -= instancia->tiempoRecarga;
+		tiempoFinalRegreso = 0;
+		distanciaFinalRegreso = 0;
 	}
 	rutaVehiculoGreedy.push_back({'d', 0});
-	tiempoEnRuta += finalReturnTime;
-	calidadRuta += finalReturnDist;
-	// Set the solution
+	tiempoVehiculoAcumulado += tiempoFinalRegreso;
+	calidadRuta += distanciaFinalRegreso;
+	
 	RutaVehiculo solution;
 	solution.route = rutaVehiculoGreedy;
-	solution.vehicleAcumTime = tiempoEnRuta;
+	solution.vehicletiempoVehiculoAcumulado = tiempoVehiculoAcumulado;
 	solution.vehicleSolQuality = calidadRuta;
 	solution.vehicleClients = totalClientes;
 	return solution;
@@ -315,7 +345,7 @@ void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& s
         for (size_t j = 0; j < sol.route.size(); ++j) {
             char tipo = sol.route[j].first;
             int id = sol.route[j].second;
-            if (tipo == 'd') archivoSalida << "do";
+            if (tipo == 'd') archivoSalida << "d0";
             else if (tipo == 'c') archivoSalida << "c" << id;
             else if (tipo == 'f') archivoSalida << "f" << id;
             if (j < sol.route.size() - 1) archivoSalida << "-";
@@ -323,8 +353,8 @@ void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& s
         archivoSalida << "\t";
 
         archivoSalida << "Distancia recorrida: " << sol.vehicleSolQuality << "\t";
-        archivoSalida << "Tiempo transcurrido: " << sol.vehicleAcumTime << "\t";
-        archivoSalida << "Distancia excedida: " << (sol.vehicleSolQuality > instancia->distanciaMaxima ? "Sí" : "No") << endl;
+        archivoSalida << "Tiempo transcurrido: " << sol.vehicletiempoVehiculoAcumulado << "\t";
+        archivoSalida << "Distancia excedida: " << (sol.vehicleSolQuality > instancia->distanciaMaxima ? "Si" : "No") << endl;
     }
 
     archivoSalida.close();
