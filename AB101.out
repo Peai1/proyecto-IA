@@ -1,21 +1,31 @@
 Calidad total	#Clientes atendidos	#Vehículos	Tiempo de ejecución [s]
-5091.92	47	18	0.00325618
+6705.14	46	28	0.00124967
 
-Ruta camión #1	do-c37-c8-c9-c32-c12-c41-f4-c16-do	Distancia recorrida: 276.04	Tiempo transcurrido: 639.06	Distancia excedida: No
-Ruta camión #2	do-c6-c18-c30-c15-c5-do	Distancia recorrida: 190.294	Tiempo transcurrido: 435.441	Distancia excedida: No
-Ruta camión #3	do-c19-c50-c22-c21-do	Distancia recorrida: 197.024	Tiempo transcurrido: 415.536	Distancia excedida: No
-Ruta camión #4	do-c4-c23-f2-c45-c29-c44-c39-c11-do	Distancia recorrida: 283.295	Tiempo transcurrido: 649.942	Distancia excedida: No
-Ruta camión #5	do-c46-do	Distancia recorrida: 185.604	Tiempo transcurrido: 308.405	Distancia excedida: No
-Ruta camión #6	do-c28-c10-f3-c26-do	Distancia recorrida: 296.188	Tiempo transcurrido: 549.282	Distancia excedida: No
-Ruta camión #7	do-c17-f9-c38-do	Distancia recorrida: 381.646	Tiempo transcurrido: 647.469	Distancia excedida: Sí
-Ruta camión #8	do-c24-f6-do	Distancia recorrida: 234.446	Tiempo transcurrido: 396.669	Distancia excedida: No
-Ruta camión #9	do-c25-f6-do	Distancia recorrida: 235.103	Tiempo transcurrido: 397.655	Distancia excedida: No
-Ruta camión #10	do-c49-f13-c48-f13-do	Distancia recorrida: 346.404	Tiempo transcurrido: 609.607	Distancia excedida: Sí
-Ruta camión #11	do-c43-f2-c40-f17-do	Distancia recorrida: 349.773	Tiempo transcurrido: 614.66	Distancia excedida: Sí
-Ruta camión #12	do-c13-f20-c2-c34-c14-do	Distancia recorrida: 323.513	Tiempo transcurrido: 620.269	Distancia excedida: Sí
-Ruta camión #13	do-c20-f17-c42-c33-do	Distancia recorrida: 323.023	Tiempo transcurrido: 589.534	Distancia excedida: Sí
-Ruta camión #14	do-c3-do	Distancia recorrida: 283.392	Tiempo transcurrido: 455.088	Distancia excedida: No
-Ruta camión #15	do-c27-do	Distancia recorrida: 290.197	Tiempo transcurrido: 465.295	Distancia excedida: No
-Ruta camión #16	do-c36-do	Distancia recorrida: 297.977	Tiempo transcurrido: 476.965	Distancia excedida: No
-Ruta camión #17	do-c35-do	Distancia recorrida: 299	Tiempo transcurrido: 478.5	Distancia excedida: No
-Ruta camión #18	do-c47-do	Distancia recorrida: 299	Tiempo transcurrido: 478.5	Distancia excedida: No
+Ruta camión #1	do-c37-c8-c9-c32-c12-c41-f4-do	Distancia recorrida: 198.648	Tiempo transcurrido: 492.972	Distancia excedida: No
+Ruta camión #2	do-c6-do	Distancia recorrida: 100.927	Tiempo transcurrido: 181.391	Distancia excedida: No
+Ruta camión #3	do-c18-c30-c15-c5-do	Distancia recorrida: 189.88	Tiempo transcurrido: 404.82	Distancia excedida: No
+Ruta camión #4	do-c19-c50-c22-c21-do	Distancia recorrida: 197.024	Tiempo transcurrido: 415.536	Distancia excedida: No
+Ruta camión #5	do-c4-do	Distancia recorrida: 180.122	Tiempo transcurrido: 300.183	Distancia excedida: No
+Ruta camión #6	do-c46-do	Distancia recorrida: 185.604	Tiempo transcurrido: 308.405	Distancia excedida: No
+Ruta camión #7	do-c28-do	Distancia recorrida: 186.104	Tiempo transcurrido: 309.156	Distancia excedida: No
+Ruta camión #8	do-c10-do	Distancia recorrida: 190.758	Tiempo transcurrido: 316.137	Distancia excedida: No
+Ruta camión #9	do-c26-do	Distancia recorrida: 196.56	Tiempo transcurrido: 324.84	Distancia excedida: No
+Ruta camión #10	do-c16-do	Distancia recorrida: 198.153	Tiempo transcurrido: 327.23	Distancia excedida: No
+Ruta camión #11	do-c45-do	Distancia recorrida: 199.261	Tiempo transcurrido: 328.891	Distancia excedida: No
+Ruta camión #12	do-c23-f2-do	Distancia recorrida: 201.574	Tiempo transcurrido: 347.361	Distancia excedida: No
+Ruta camión #13	do-c17-f9-do	Distancia recorrida: 203.678	Tiempo transcurrido: 350.517	Distancia excedida: No
+Ruta camión #14	do-c29-f2-do	Distancia recorrida: 207.504	Tiempo transcurrido: 356.257	Distancia excedida: No
+Ruta camión #15	do-c24-f6-do	Distancia recorrida: 234.446	Tiempo transcurrido: 396.669	Distancia excedida: No
+Ruta camión #16	do-c25-f6-do	Distancia recorrida: 235.103	Tiempo transcurrido: 397.655	Distancia excedida: No
+Ruta camión #17	do-c44-f2-do	Distancia recorrida: 227.831	Tiempo transcurrido: 386.747	Distancia excedida: No
+Ruta camión #18	do-c38-f2-do	Distancia recorrida: 239.621	Tiempo transcurrido: 404.431	Distancia excedida: No
+Ruta camión #19	do-c49-f13-c48-f13-do	Distancia recorrida: 346.404	Tiempo transcurrido: 609.607	Distancia excedida: Sí
+Ruta camión #20	do-c11-f2-c39-c40-do	Distancia recorrida: 333.672	Tiempo transcurrido: 605.508	Distancia excedida: Sí
+Ruta camión #21	do-c43-f2-c13-f16-do	Distancia recorrida: 344.75	Tiempo transcurrido: 607.124	Distancia excedida: Sí
+Ruta camión #22	do-c14-f20-c2-c34-c3-do	Distancia recorrida: 349.788	Tiempo transcurrido: 659.683	Distancia excedida: Sí
+Ruta camión #23	do-c20-f17-do	Distancia recorrida: 282.715	Tiempo transcurrido: 469.073	Distancia excedida: No
+Ruta camión #24	do-c42-f17-do	Distancia recorrida: 288.844	Tiempo transcurrido: 478.265	Distancia excedida: No
+Ruta camión #25	do-c27-do	Distancia recorrida: 290.197	Tiempo transcurrido: 465.295	Distancia excedida: No
+Ruta camión #26	do-c36-do	Distancia recorrida: 297.977	Tiempo transcurrido: 476.965	Distancia excedida: No
+Ruta camión #27	do-c35-do	Distancia recorrida: 299	Tiempo transcurrido: 478.5	Distancia excedida: No
+Ruta camión #28	do-c47-do	Distancia recorrida: 299	Tiempo transcurrido: 478.5	Distancia excedida: No
