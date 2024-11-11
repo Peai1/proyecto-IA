@@ -7,11 +7,10 @@
 #include <iomanip>
 #include <limits>
 #include <cstdlib>
+#include <iomanip> 
 
 using namespace std;
 using namespace chrono;
-
-typedef pair<char, int> nodeKey;
 
 struct Nodo {
     int id;
@@ -21,10 +20,18 @@ struct Nodo {
 };
 
 struct RutaVehiculo{
-	vector<nodeKey> route;
-	double vehicletiempoVehiculoAcumulado = 0;
-	double vehicleSolQuality = 0;
-	int vehicleClients = 0;
+	vector<Nodo> ruta;
+	double tiempoAcumuladoVehiculo = 0;
+	double calidadRuta = 0;
+	int clientesVisitados = 0;
+
+	RutaVehiculo(const vector<Nodo>& ruta, double tiempoAcumuladoVehiculo, 
+		double calidadRuta, int clientesVisitados){
+		this->ruta = ruta;
+		this->tiempoAcumuladoVehiculo = tiempoAcumuladoVehiculo;
+		this->calidadRuta = calidadRuta;
+		this->clientesVisitados = clientesVisitados;
+	}
 };
 
 struct Instancia {
@@ -36,20 +43,10 @@ struct Instancia {
     double velocidad;
     double tiempoServicio;
     double tiempoRecarga;
-    double capacidadCombustible;
     vector<Nodo> nodosClientes;
     vector<Nodo> nodosEstaciones;
     Nodo deposito;
-    vector<int> clientesVisitados;
 };
-
-struct Ruta {
-    vector<nodeKey> nodosVisitados;
-    double distanciaTotal = 0;
-    double tiempoTotal = 0;
-    double combustibleRestante;
-};
-
 
 // Función para calcular la distancia Haversine entre dos nodos
 double calcularDistanciaHaversine(double longitudActual, double latitudActual, double longitudNodoNext, double latitudNodoNext) {
@@ -64,24 +61,17 @@ double calcularDistanciaHaversine(double longitudActual, double latitudActual, d
     return 2 * radioTierra * asin(sqrt(insideRootValue));
 }
 
-
-
 // Leer la instancia desde un archivo
 Instancia* leerInstancia(const string &nombreArchivo) {
     Instancia* instancia = new Instancia();
     ifstream archivo(nombreArchivo);
-    if (!archivo.is_open()) {
-        cerr << "Error al abrir el archivo: " << nombreArchivo << endl;
-        exit(1);
-    }
 
     string linea;
     if (getline(archivo, linea)) {
         istringstream stream(linea);
         stream >> instancia->nombre >> instancia->numClientes >> instancia->numEstaciones 
                >> instancia->tiempoMaximo >> instancia->distanciaMaxima 
-               >> instancia->velocidad >> instancia->tiempoServicio >> instancia->tiempoRecarga
-               >> instancia->capacidadCombustible;
+               >> instancia->velocidad >> instancia->tiempoServicio >> instancia->tiempoRecarga;
     }
  
     while (getline(archivo, linea)) {
@@ -106,11 +96,10 @@ int verificarRegreso(double distanciaVehiculoAcumulada, double tiempoVehiculoAcu
 	double longitudDeposito, latitudDeposito;
 	double distanciaAuxTotal = 0;
 	double tiempoAux = 0;
-	// Longitude & Latitude of the depot node
 	longitudDeposito = instancia->deposito.longitud;
 	latitudDeposito = instancia->deposito.latitud;
 
-	int AFsID = -1;  // Inicialización indicando que no se encontró una estación de servicio válida
+	int AFsID = -1;  // Inicializacion indicando que no se encuentra una estación de servicio para regresar
     tiempoAFS = 0;
     distanciaAFS = 0;
     distanciaAFsDeposito = 0;
@@ -163,16 +152,20 @@ int verificarRegreso(double distanciaVehiculoAcumulada, double tiempoVehiculoAcu
 	return AFsID;
 }
 
-RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodosClientesVisitados) {
-    vector<nodeKey> rutaVehiculoGreedy;
-	Nodo nodoActual = instancia->deposito;
+RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodosClientesVisitados, int primerClienteRandom) {
+    vector<Nodo> rutaVehiculoGreedy;
 	Nodo nodoSiguiente, nodoAuxiliar;
+	Nodo nodoActual = instancia->deposito;
 
-	nodeKey curKey = {nodoActual.tipo, nodoActual.id};
-	rutaVehiculoGreedy.push_back(curKey);
+	rutaVehiculoGreedy.push_back(instancia->deposito);
+
+	if (primerClienteRandom != -1) {
+		// agregar primer cliente random a la ruta
+		nodoActual = instancia->nodosClientes[primerClienteRandom - 1];
+		rutaVehiculoGreedy.push_back(nodoActual);
+	}
 
 	double calidadRuta = 0;
-	double tiempoVehiculoAcumulado = 0;
 	double distanciaProximoCliente = 0;
 	double distanciaVehiculoAcumulada = 0;
 	double distanciaAlDeposito = 0;
@@ -182,7 +175,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	double tiempoAFS; // tiempo a la estacion de servicio para regresar
 	double distanciaAFS; // distancia a la estacion de servicio para regresar
 	double distanciaAFsDeposito; // distancia de la estacion de servicio al deposito para regresar
-	double auxTime = 0, tiempoSiguienteNodo = 0;
+	double tiempoAux = 0, tiempoSiguienteNodo = 0;
 	double tiempoFinalRegreso = 0, distanciaFinalRegreso = 0;
 	int necesitaRepostar = 1, terminarCiclo = 1, puedeRetornarDeposito = 0;
 	int totalClientes = 0;
@@ -191,6 +184,8 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	// Longitud y latitud del deposito
 	double longitudDeposito = nodoActual.longitud;
 	double latitudDeposito = nodoActual.latitud;
+
+	double tiempoVehiculoAcumulado = 0;
 
 	while(tiempoVehiculoAcumulado < instancia->tiempoMaximo) {
 
@@ -204,7 +199,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				// Calcular distancia entre el nodo actual y el siguiente nodo cliente posible a visitar
 				distanciaProximoCliente = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, nodoAuxiliar.longitud, nodoAuxiliar.latitud);	
 
-				// If se encuentra un nodo mas cercano y la distancia acumulada no excede la distancia maxima del vehiculo
+				// If se encuentra un nodo mas cercano y la distancia para llegar no excede la distancia maxima
 				if(distanciaProximoCliente < distanciaMinimaEncontrada && distanciaVehiculoAcumulada + distanciaProximoCliente < instancia->distanciaMaxima) {
 
 					// Distancia al deposito
@@ -215,13 +210,13 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 						puedeRetornarDeposito = 1;
 
 						// Tiempo para llegar a nodo cliente + tiempo de servicio de atender al cliente
-						auxTime = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
+						tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
 
-						// auxTime + tiempo acumulado del vehiculo + tiempo para regresar al deposito <= tiempo maximo
-						if (auxTime + tiempoVehiculoAcumulado + (distanciaAlDeposito / instancia->velocidad) <= instancia->tiempoMaximo) {
+						// tiempoAux + tiempo acumulado del vehiculo + tiempo para regresar al deposito <= tiempo maximo
+						if (tiempoAux + tiempoVehiculoAcumulado + (distanciaAlDeposito / instancia->velocidad) <= instancia->tiempoMaximo) {
 							nodoSiguiente = nodoAuxiliar;
 							distanciaMinimaEncontrada = distanciaProximoCliente;
-							tiempoSiguienteNodo = auxTime;
+							tiempoSiguienteNodo = tiempoAux;
 							necesitaRepostar = 0;
 							terminarCiclo = 0;
 							distanciaFinalRegreso = distanciaAlDeposito;
@@ -238,12 +233,12 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 
 							if (distanciaAFS + distanciaAFsDeposito < distanciaAlDeposito && distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS <= instancia->distanciaMaxima) {
 								
-								auxTime = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
+								tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
 
-								if (auxTime + tiempoVehiculoAcumulado + tiempoAFS <= instancia->tiempoMaximo) {
+								if (tiempoAux + tiempoVehiculoAcumulado + tiempoAFS <= instancia->tiempoMaximo) {
 									nodoSiguiente = nodoAuxiliar;
 									distanciaMinimaEncontrada = distanciaProximoCliente;
-									tiempoSiguienteNodo = auxTime;
+									tiempoSiguienteNodo = tiempoAux;
 									necesitaRepostar = 0;
 									terminarCiclo = 0;
 									tiempoFinalRegreso = tiempoAFS;
@@ -255,10 +250,8 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				}
 			}
 		}
-
 		// Si no encuentra algun cliente donde viajar, intenta buscar una estacion de servicio (si el ultimo nodo visitado no fue una estacion de servicio)
-		if(necesitaRepostar && rutaVehiculoGreedy.back().first != 'f') {
-
+		if(necesitaRepostar && rutaVehiculoGreedy.back().tipo != 'f') {
 			// Verificar si se puede regresar al deposito desde el nodo actual
 			AFsID = verificarRegreso(distanciaVehiculoAcumulada, tiempoVehiculoAcumulado, nodoActual.longitud, nodoActual.latitud, instancia, tiempoAFS, distanciaAFS, distanciaAFsDeposito);
 			
@@ -290,7 +283,6 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 		
 		distanciaVehiculoAcumulada += distanciaMinimaEncontrada;
 		tiempoVehiculoAcumulado += tiempoSiguienteNodo;
-		distanciaVehiculoAcumulada += distanciaMinimaEncontrada;
 		calidadRuta += distanciaMinimaEncontrada;
 		distanciaMinimaEncontrada = 9999999;
 		necesitaRepostar = 1;
@@ -299,93 +291,188 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 		nodoActual = nodoSiguiente;
 		if(nodoSiguiente.tipo == 'c') 
 			totalClientes++;
-		rutaVehiculoGreedy.push_back({nodoSiguiente.tipo, nodoSiguiente.id});
+		rutaVehiculoGreedy.push_back(nodoSiguiente);
 	}
 	
 	// Si el ultimo nodo visitado fue una estacion de servicio y era el deposito, se elimina y se resta el tiempo de recarga
-	if(rutaVehiculoGreedy.back().first == 'f' && rutaVehiculoGreedy.back().second == 0) {
+	if(rutaVehiculoGreedy.back().tipo == 'f' && rutaVehiculoGreedy.back().id == 0) {
 		rutaVehiculoGreedy.pop_back();
 		tiempoVehiculoAcumulado -= instancia->tiempoRecarga;
 		tiempoFinalRegreso = 0;
 		distanciaFinalRegreso = 0;
 	}
-	rutaVehiculoGreedy.push_back({'d', 0});
+
+	rutaVehiculoGreedy.push_back(instancia->deposito);
 	tiempoVehiculoAcumulado += tiempoFinalRegreso;
 	calidadRuta += distanciaFinalRegreso;
 	
-	RutaVehiculo solution;
-	solution.route = rutaVehiculoGreedy;
-	solution.vehicletiempoVehiculoAcumulado = tiempoVehiculoAcumulado;
-	solution.vehicleSolQuality = calidadRuta;
-	solution.vehicleClients = totalClientes;
+	RutaVehiculo solution(rutaVehiculoGreedy, tiempoVehiculoAcumulado, calidadRuta, totalClientes);
 	return solution;
 }
 
-void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& soluciones, const string& nombreArchivo, double tiempoEjecucion) {
-    ofstream archivoSalida(nombreArchivo);
-    if (!archivoSalida.is_open()) {
-        cerr << "Error al crear el archivo de salida: " << nombreArchivo << endl;
-        return;
+bool verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
+    vector<RutaVehiculo> rutasSeparadas = separarRuta(rutaConcatenada);
+    Nodo deposito = {0, 'd', 0.0, 0.0};
+
+    for (const auto& rutaVehiculo : rutasSeparadas) {
+        double distanciaAcumulada = 0.0;
+        double tiempoAcumulado = 0.0;
+        Nodo nodoActual = deposito;
+
+        if (rutaVehiculo.ruta.front().tipo != 'd' || rutaVehiculo.ruta.back().tipo != 'd') {
+            return false;
+        }
+
+        // Recorrer la ruta del vehículo
+        for (size_t i = 1; i < rutaVehiculo.ruta.size(); ++i) {
+            Nodo nodoSiguiente = rutaVehiculo.ruta[i];
+            double distancia = 0.0;
+
+            if (nodoSiguiente.tipo == 'c') {
+                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id - 1];
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, cliente.longitud, cliente.latitud);
+                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoServicio;
+            } else if (nodoSiguiente.tipo == 'f') {
+                Nodo estacion = instancia->nodosEstaciones[nodoSiguiente.id];
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, estacion.longitud, estacion.latitud);
+                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoRecarga;
+                distanciaAcumulada = 0; 
+            } else if (nodoSiguiente.tipo == 'd') {
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, deposito.longitud, deposito.latitud);
+            }
+
+            distanciaAcumulada += distancia;
+
+            if (distanciaAcumulada > instancia->distanciaMaxima || tiempoAcumulado > instancia->tiempoMaximo) {
+                return false;
+            }
+
+            nodoActual = nodoSiguiente;
+        }
     }
 
-    archivoSalida << "Calidad total\t#Clientes atendidos\t#Vehículos\tTiempo de ejecución [s]" << endl;
+    return true;
+}
+
+void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& soluciones, const string& nombreArchivo, double tiempoEjecucion = 0) {
+    ofstream archivoSalida(nombreArchivo);
+
     double calidadTotal = 0;
     int totalClientes = 0;
     for (const auto& sol : soluciones) {
-        calidadTotal += sol.vehicleSolQuality;
-        totalClientes += sol.vehicleClients;
+        calidadTotal += sol.calidadRuta;
+        totalClientes += sol.clientesVisitados;
     }
+
+    archivoSalida << std::fixed << std::setprecision(2);
     archivoSalida << calidadTotal << "\t" << totalClientes << "\t" << soluciones.size() << "\t" << tiempoEjecucion << endl << endl;
 
-    // Guardar cada solución individualmente
-    for (size_t i = 0; i < soluciones.size(); ++i) {
-        const RutaVehiculo& sol = soluciones[i];
-        archivoSalida << "Ruta camión #" << i + 1 << "\t";
+    // Guardar cada solución individualmente con alineación adecuada
+    for (const auto& sol : soluciones) {
+        std::ostringstream rutaStream;
 
-        for (size_t j = 0; j < sol.route.size(); ++j) {
-            char tipo = sol.route[j].first;
-            int id = sol.route[j].second;
-            if (tipo == 'd') archivoSalida << "d0";
-            else if (tipo == 'c') archivoSalida << "c" << id;
-            else if (tipo == 'f') archivoSalida << "f" << id;
-            if (j < sol.route.size() - 1) archivoSalida << "-";
+        // Generar la cadena de la ruta
+        for (size_t j = 0; j < sol.ruta.size(); ++j) {
+            char tipo = sol.ruta[j].tipo;
+            int id = sol.ruta[j].id;
+            if (tipo == 'd') rutaStream << "d0";
+            else if (tipo == 'c') rutaStream << "c" << id;
+            else if (tipo == 'f') rutaStream << "f" << id;
+            if (j < sol.ruta.size() - 1) rutaStream << "-";
         }
-        archivoSalida << "\t";
 
-        archivoSalida << "Distancia recorrida: " << sol.vehicleSolQuality << "\t";
-        archivoSalida << "Tiempo transcurrido: " << sol.vehicletiempoVehiculoAcumulado << "\t";
-        archivoSalida << "Distancia excedida: " << (sol.vehicleSolQuality > instancia->distanciaMaxima ? "Si" : "No") << endl;
+        // Imprimir la ruta y los valores numéricos alineados
+        archivoSalida << std::left << std::setw(65) << rutaStream.str()
+                      << std::right << std::setw(15) << sol.calidadRuta
+                      << std::setw(15) << sol.tiempoAcumuladoVehiculo
+                      << std::setw(10) << (sol.calidadRuta > instancia->distanciaMaxima ? "Sí" : "No") << endl;
     }
+}
 
-    archivoSalida.close();
+// Funcion para concatenar una lista de rutas en un vector
+vector<Nodo> concatenarRuta(const vector<RutaVehiculo>& solucion) {
+    vector<Nodo> rutaConcatenada;
+
+    for (const auto& vehiculo : solucion) {
+        for (const auto& nodo : vehiculo.ruta) {
+			if (nodo.tipo == 'd' && !rutaConcatenada.empty() && rutaConcatenada.back().tipo == 'd') {
+                continue;
+            }
+            rutaConcatenada.push_back(nodo);
+        }
+    }
+    return rutaConcatenada;
+}
+
+// Funcion para separar una lista concatenada de rutas de los vehiculos en un vector de vectores
+vector<RutaVehiculo> separarRuta(const vector<Nodo>& rutaConcatenada) {
+    vector<RutaVehiculo> solucion;
+    vector<Nodo> rutaVehiculo;
+    Nodo deposito = {0, 'd', 0.0, 0.0};
+
+    // Recorrer la ruta concatenada
+    for (const auto& nodo : rutaConcatenada) {
+        if (nodo.tipo == 'd') {
+            if (!rutaVehiculo.empty()) {
+                rutaVehiculo.insert(rutaVehiculo.begin(), deposito);
+                rutaVehiculo.push_back(deposito);
+                solucion.emplace_back(rutaVehiculo, 0.0, 0.0, rutaVehiculo.size());
+                rutaVehiculo.clear();
+            }
+        } else {
+            rutaVehiculo.push_back(nodo);
+        }
+	}
+    return solucion;
+}
+
+
+
+
+vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instancia, int cantidadPoblacionInicial) {
+	vector<vector<RutaVehiculo>> solucionesIniciales;
+	for (int i = 0; i < cantidadPoblacionInicial; i ++){
+		vector<int> nodosClientesVisitados;
+		for(int i = 0; i < instancia->numClientes; i++) {
+			nodosClientesVisitados.push_back(0);
+		}
+
+		int primerClienteRandom = rand() % instancia->numClientes;
+		nodosClientesVisitados[primerClienteRandom - 1] = 1;
+
+		vector<RutaVehiculo> solucion;
+		while (true) {
+			RutaVehiculo sol = crearSolucionInicial(instancia, nodosClientesVisitados, primerClienteRandom);
+			if (sol.clientesVisitados == 0)  
+				break;
+
+			primerClienteRandom = -1;
+			solucion.push_back(sol);
+		}
+		solucionesIniciales.push_back(solucion);
+
+		// test
+		vector<Nodo> ola = concatenarRuta(solucion);
+		vector<RutaVehiculo> god = separarRuta(ola);
+
+    	guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out");
+	}
+	return solucionesIniciales;
 }
 
 int main() {
-    srand(static_cast<unsigned>(time(0)));
+	srand(time(nullptr));
 
+    vector<vector<RutaVehiculo>> solucionesIniciales;  // Vector para almacenar todas las soluciones
     Instancia* instancia = leerInstancia("instancias/AB101.dat");
-    vector<int> nodosClientesVisitados;
-    for(int i = 0; i < instancia->numClientes; i++) {
-		nodosClientesVisitados.push_back(0);
-	}
-
-    vector<RutaVehiculo> soluciones;  // Vector para almacenar todas las soluciones
+	int cantidadPoblacionInicial = 10;
 
     auto inicio = high_resolution_clock::now();
-    
-    while (true) {
-        RutaVehiculo sol = crearSolucionInicial(instancia, nodosClientesVisitados);
-        if (sol.vehicleClients == 0)  // Terminar si una solución tiene 0 clientes
-            break;
 
-        soluciones.push_back(sol);  // Guardar solución en el vector
-    }
+	solucionesIniciales = generarSolucionesIniciales(instancia, cantidadPoblacionInicial);
 
     auto fin = high_resolution_clock::now();
     double tiempoEjecucion = duration<double>(fin - inicio).count();
-
-    string nombreArchivoSalida = instancia->nombre + ".out";
-    guardarSoluciones(instancia, soluciones, nombreArchivoSalida, tiempoEjecucion);
 
     return 0;
 }
