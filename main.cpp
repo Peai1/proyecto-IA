@@ -113,7 +113,7 @@ int verificarRegreso(double distanciaVehiculoAcumulada, double tiempoVehiculoAcu
     distanciaAFS = 0;
     distanciaAFsDeposito = 0;
 
-	for(int i = 0; i < instancia->numEstaciones; i++) {
+	for(int i = 1; i < instancia->numEstaciones; i++) {
 		nodoAuxiliar = instancia->nodosEstaciones[i];
 		distanciaAuxTotal = 0;
 		tiempoAux = 0;
@@ -171,6 +171,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	double calidadRuta = 0;
 	double distanciaProximoCliente = 0;
 	double distanciaVehiculoAcumulada = 0;
+	double tiempoVehiculoAcumulado = 0;
 	double distanciaAlDeposito = 0;
 	double distanciaMinimaEncontrada = 9999999;
 	double latitudActual, longitudActual;
@@ -187,8 +188,6 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	// Longitud y latitud del deposito
 	double longitudDeposito = nodoActual.longitud;
 	double latitudDeposito = nodoActual.latitud;
-
-	double tiempoVehiculoAcumulado = 0;
 
 	// Verifica si el primer cliente random cumple restricciones de tiempo y distancia, si no, elige otro
 	if (primerClienteRandom != -1) {
@@ -247,7 +246,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				// Calcular distancia entre el nodo actual y el siguiente nodo cliente posible a visitar
 				distanciaProximoCliente = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, nodoAuxiliar.longitud, nodoAuxiliar.latitud);	
 
-				// If se encuentra un nodo mas cercano y la distancia para llegar no excede la distancia maxima
+				// If se encuentra un nodo mas cercano y la distancia acumulada no excede la distancia maxima del vehiculo
 				if(distanciaProximoCliente < distanciaMinimaEncontrada && distanciaVehiculoAcumulada + distanciaProximoCliente < instancia->distanciaMaxima) {
 
 					// Distancia al deposito
@@ -279,11 +278,11 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 						if (AFsID != -1) {
 							puedeRetornarDeposito = 1;
 
-							if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS + distanciaAFsDeposito <= instancia->distanciaMaxima) {
+							if (distanciaAFS + distanciaAFsDeposito < distanciaAlDeposito && distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS <= instancia->distanciaMaxima) {
 								
 								tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
 
-								if (tiempoAux + tiempoVehiculoAcumulado + tiempoAFS  <= instancia->tiempoMaximo) {
+								if (tiempoAux + tiempoVehiculoAcumulado + tiempoAFS <= instancia->tiempoMaximo) {
 									nodoSiguiente = nodoAuxiliar;
 									distanciaMinimaEncontrada = distanciaProximoCliente;
 									tiempoSiguienteNodo = tiempoAux;
@@ -298,13 +297,14 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				}
 			}
 		}
+
 		// Si no encuentra algun cliente donde viajar, intenta buscar una estacion de servicio (si el ultimo nodo visitado no fue una estacion de servicio)
 		if(necesitaRepostar && rutaVehiculoGreedy.back().tipo != 'f') {
+
 			// Verificar si se puede regresar al deposito desde el nodo actual
 			AFsID = verificarRegreso(distanciaVehiculoAcumulada, tiempoVehiculoAcumulado, nodoActual.longitud, nodoActual.latitud, instancia, tiempoAFS, distanciaAFS, distanciaAFsDeposito);
-			cout << "repostar1: " << AFsID << endl;
+			
 			if(AFsID != -1) {
-				cout << "repostar2: " << AFsID << endl;
 				puedeRetornarDeposito = 1;
 				nodoSiguiente = instancia->nodosEstaciones[AFsID];
 				distanciaMinimaEncontrada = distanciaAFS;
@@ -350,7 +350,6 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 		tiempoFinalRegreso = 0;
 		distanciaFinalRegreso = 0;
 	}
-
 	rutaVehiculoGreedy.push_back(instancia->deposito);
 	tiempoVehiculoAcumulado += tiempoFinalRegreso;
 	calidadRuta += distanciaFinalRegreso;
@@ -484,14 +483,13 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 			nodosClientesVisitados.push_back(0);
 		}
 
-		cout << "solucion nro: " << i + 1 << endl;
-        std::set<int> clientesGenerados;
-        int primerClienteRandom;
-        do {
-            primerClienteRandom = rand() % instancia->numClientes + 1; 
-        } while (clientesGenerados.count(primerClienteRandom) > 0);
-        clientesGenerados.insert(primerClienteRandom);
-        nodosClientesVisitados[primerClienteRandom - 1] = 1;
+		std::set<int> clientesGenerados;
+		int primerClienteRandom;
+		do {
+		    primerClienteRandom = rand() % instancia->numClientes + 1; 
+		} while (clientesGenerados.count(primerClienteRandom) > 0);
+		clientesGenerados.insert(primerClienteRandom);
+		nodosClientesVisitados[primerClienteRandom - 1] = 1;
 
 		vector<RutaVehiculo> solucion;
 		while (true) {
@@ -500,7 +498,6 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 				break;
 
 			if (sol.ruta.size() == 0){
-				// genera otro cliente random
 				do {
 					primerClienteRandom = rand() % instancia->numClientes + 1; 
 				} while (clientesGenerados.count(primerClienteRandom) > 0);
