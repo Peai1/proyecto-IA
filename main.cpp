@@ -168,6 +168,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 
 	rutaVehiculoGreedy.push_back(instancia->deposito);
 
+	double tiempoRegresoDeposito = 0;
 	double calidadRuta = 0;
 	double distanciaProximoCliente = 0;
 	double distanciaVehiculoAcumulada = 0;
@@ -258,16 +259,17 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 
 						// Tiempo para llegar a nodo cliente + tiempo de servicio de atender al cliente
 						tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
+						tiempoRegresoDeposito = distanciaAlDeposito / instancia->velocidad;
 
 						// tiempoAux + tiempo acumulado del vehiculo + tiempo para regresar al deposito <= tiempo maximo
-						if (tiempoAux + tiempoVehiculoAcumulado + (distanciaAlDeposito / instancia->velocidad) <= instancia->tiempoMaximo) {
+						if (tiempoAux + tiempoVehiculoAcumulado + tiempoRegresoDeposito <= instancia->tiempoMaximo) {
 							nodoSiguiente = nodoAuxiliar;
 							distanciaMinimaEncontrada = distanciaProximoCliente;
 							tiempoSiguienteNodo = tiempoAux;
 							necesitaRepostar = 0;
 							terminarEjecucion = 0;
 							distanciaFinalRegreso = distanciaAlDeposito;
-							tiempoFinalRegreso = distanciaAlDeposito / instancia->velocidad;
+							tiempoFinalRegreso = tiempoRegresoDeposito;
 						}
 					}
 					
@@ -278,7 +280,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 						if (AFsID != -1) {
 							puedeRetornarDeposito = 1;
 
-							if (distanciaAFS + distanciaAFsDeposito < distanciaAlDeposito && distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS <= instancia->distanciaMaxima) {
+							if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS + distanciaAFsDeposito <= instancia->distanciaMaxima) {
 								
 								tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
 
