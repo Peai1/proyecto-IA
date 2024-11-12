@@ -199,13 +199,13 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 			if (distanciaProximoCliente + distanciaAlDeposito <= instancia->distanciaMaxima) {
 				tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
 				if (tiempoAux + (distanciaAlDeposito / instancia->velocidad) <= instancia->tiempoMaximo) {
-					tiempoFinalRegreso = tiempoAFS;
+					tiempoFinalRegreso = distanciaAlDeposito / instancia->velocidad;
 					distanciaFinalRegreso =  distanciaAlDeposito;
 					distanciaVehiculoAcumulada += distanciaProximoCliente;
 					tiempoVehiculoAcumulado += tiempoAux;
 					calidadRuta +=  distanciaProximoCliente;
 					rutaVehiculoGreedy.push_back(nodoClienteRandom);
-					nodosClientesVisitados[primerClienteRandom ] = 1;
+					nodosClientesVisitados[primerClienteRandom] = 1;
 					nodoActual = nodoClienteRandom;
 				}
 			} else {
@@ -317,7 +317,10 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				distanciaFinalRegreso = distanciaAFsDeposito;
 			}
 		}
-		if(terminarEjecucion || !puedeRetornarDeposito) break;
+
+		if(terminarEjecucion || !puedeRetornarDeposito){
+			break;
+		}
 
 		if(!necesitaRepostar) 
 			nodosClientesVisitados[nodoSiguiente.id-1] = 1;
@@ -335,13 +338,6 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 		rutaVehiculoGreedy.push_back(nodoSiguiente);
 	}
 	
-	// Si el ultimo nodo visitado fue una estacion de servicio y era el deposito, se elimina y se resta el tiempo de recarga
-	if(rutaVehiculoGreedy.back().tipo == 'f' && rutaVehiculoGreedy.back().id == 0) {
-		rutaVehiculoGreedy.pop_back();
-		tiempoVehiculoAcumulado -= instancia->tiempoRecarga;
-		tiempoFinalRegreso = 0;
-		distanciaFinalRegreso = 0;
-	}
 	rutaVehiculoGreedy.push_back(instancia->deposito);
 	tiempoVehiculoAcumulado += tiempoFinalRegreso;
 	calidadRuta += distanciaFinalRegreso;
@@ -381,7 +377,7 @@ void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& s
         archivoSalida << std::left << std::setw(65) << rutaStream.str()
                       << std::right << std::setw(15) << sol.calidadRuta
                       << std::setw(15) << sol.tiempoAcumuladoVehiculo
-                      << std::setw(10) << (sol.calidadRuta > instancia->distanciaMaxima ? "Sí" : "No") << endl;
+                      << std::setw(10) << 0 << endl;
     }
 }
 
@@ -442,7 +438,7 @@ bool verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* i
             double distancia = 0.0;
 
             if (nodoSiguiente.tipo == 'c') {
-                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id - 1];
+                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id];
                 distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, cliente.longitud, cliente.latitud);
                 tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoServicio;
             } else if (nodoSiguiente.tipo == 'f') {
@@ -478,10 +474,10 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 		std::set<int> clientesGenerados;
 		int primerClienteRandom;
 		do {
-		    primerClienteRandom = rand() % instancia->numClientes + 1; 
+		    primerClienteRandom = rand() % instancia->numClientes; 
 		} while (clientesGenerados.count(primerClienteRandom) > 0);
 		clientesGenerados.insert(primerClienteRandom);
-		nodosClientesVisitados[primerClienteRandom - 1] = 1;
+		nodosClientesVisitados[primerClienteRandom] = 1;
 
 		vector<RutaVehiculo> solucion;
 		while (true) {
@@ -491,7 +487,7 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 
 			if (sol.ruta.size() == 0){
 				do {
-					primerClienteRandom = rand() % instancia->numClientes + 1; 
+					primerClienteRandom = rand() % instancia->numClientes; 
 				} while (clientesGenerados.count(primerClienteRandom) > 0);
 				clientesGenerados.insert(primerClienteRandom);
 				nodosClientesVisitados[primerClienteRandom] = 1;
