@@ -715,8 +715,6 @@ pair<vector<Nodo>, vector<Nodo>> crossover(const vector<Nodo>& parent1, const ve
 
     Nodo clienteComun = seleccionarClienteComun(parent1, parent2);
 
-    // cout << "Cliente común seleccionado: c" << clienteComun.id << endl;
-
     sub1 = extraerSubruta(parent1, clienteComun);
     subruta2 = extraerSubruta(parent2, clienteComun);
     sub2 = crearSub2(sub1, subruta2);
@@ -737,22 +735,13 @@ pair<vector<Nodo>, vector<Nodo>> crossover(const vector<Nodo>& parent1, const ve
     return {hijo1, hijo2};
 }
 
-// ---------------------------- MAIN ----------------------------
+// Algoritmo evolutivo
 
-
-int main() {
-	srand(time(nullptr));
-
-    vector<vector<RutaVehiculo>> solucionesIniciales;  // Vector para almacenar todas las soluciones
-    Instancia* instancia = leerInstancia("instancias/AB101.dat");
-	int cantidadPoblacionInicial = instancia->numClientes;
-
-    auto inicio = high_resolution_clock::now();
-
-	solucionesIniciales = generarSolucionesIniciales(instancia, cantidadPoblacionInicial);
-
-	bool flag = true;
+void algoritmoEvolutivo(int cantidadPoblacionInicial, Instancia* instancia) {
+    bool flag = true;
 	bool flag2 = false;
+
+    vector<vector<RutaVehiculo>> solucionesIniciales = generarSolucionesIniciales(instancia, cantidadPoblacionInicial);
 
 	while (flag == true) {
 		// selecciona 2 soluciones aleatorias y realiza el cruzamiento
@@ -787,8 +776,22 @@ int main() {
 		} 
 	
 	}
+}
+
+// ---------------------------- MAIN ----------------------------
+
+int main() {
+	srand(time(nullptr));
+
+    Instancia* instancia = leerInstancia("instancias/AB101.dat");
+	int cantidadPoblacionInicial = instancia->numClientes;
+
+    auto inicio = high_resolution_clock::now();
+
+	algoritmoEvolutivo(cantidadPoblacionInicial, instancia);
 
     auto fin = high_resolution_clock::now();
+
     double tiempoEjecucion = duration<double>(fin - inicio).count();
 	cout << "tiempo ejecucion: " << tiempoEjecucion << endl;
 
