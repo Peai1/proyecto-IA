@@ -9,15 +9,24 @@
 #include <cstdlib>
 #include <iomanip> 
 #include <set>
+#include <algorithm>
 
 using namespace std;
-using namespace chrono;
 
 struct Nodo {
     int id;
     char tipo;
     double longitud;
     double latitud;
+
+    bool operator==(const Nodo& other) const {
+        return id == other.id && tipo == other.tipo;
+    }
+
+    bool operator<(const Nodo& other) const {
+        if (tipo != other.tipo) return tipo < other.tipo;
+        return id < other.id;
+    }
 };
 
 struct RutaVehiculo{
@@ -48,6 +57,8 @@ struct Instancia {
     vector<Nodo> nodosEstaciones;
     Nodo deposito;
 };
+
+using namespace chrono;
 
 // Distancia haversine
 double calcularDistanciaHaversine(double longitudActual, double latitudActual, double longitudNodoNext, double latitudNodoNext) {
@@ -419,17 +430,18 @@ vector<RutaVehiculo> separarRuta(const vector<Nodo>& rutaConcatenada) {
 }
 
 
-bool verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
+pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
     vector<RutaVehiculo> rutasSeparadas = separarRuta(rutaConcatenada);
-    Nodo deposito = {0, 'd', 0.0, 0.0};
+	double calidadTotal = 0;
+	double clientesVisitados = 0;
 
     for (const auto& rutaVehiculo : rutasSeparadas) {
         double distanciaAcumulada = 0.0;
         double tiempoAcumulado = 0.0;
-        Nodo nodoActual = deposito;
+        Nodo nodoActual = instancia->deposito;
 
         if (rutaVehiculo.ruta.front().tipo != 'd' || rutaVehiculo.ruta.back().tipo != 'd') {
-            return false;
+            return make_pair(-1,-1);
         }
 
         // Recorrer la ruta del vehículo
@@ -438,46 +450,49 @@ bool verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* i
             double distancia = 0.0;
 
             if (nodoSiguiente.tipo == 'c') {
-                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id];
+                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id - 1];
                 distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, cliente.longitud, cliente.latitud);
                 tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoServicio;
+				clientesVisitados++;
             } else if (nodoSiguiente.tipo == 'f') {
                 Nodo estacion = instancia->nodosEstaciones[nodoSiguiente.id];
                 distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, estacion.longitud, estacion.latitud);
                 tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoRecarga;
                 distanciaAcumulada = 0; 
             } else if (nodoSiguiente.tipo == 'd') {
-                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, deposito.longitud, deposito.latitud);
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, instancia->deposito.longitud, instancia->deposito.latitud);
             }
 
             distanciaAcumulada += distancia;
+			calidadTotal += distancia;
 
             if (distanciaAcumulada > instancia->distanciaMaxima || tiempoAcumulado > instancia->tiempoMaximo) {
-                return false;
+                return make_pair(-1,-1);		
             }
 
             nodoActual = nodoSiguiente;
         }
     }
 
-    return true;
+    return make_pair(calidadTotal, clientesVisitados);
 }
 
 vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instancia, int cantidadPoblacionInicial) {
 	vector<vector<RutaVehiculo>> solucionesIniciales;
 	for (int i = 0; i < cantidadPoblacionInicial; i ++){
-		vector<int> nodosClientesVisitados;
-		for(int i = 0; i < instancia->numClientes; i++) {
-			nodosClientesVisitados.push_back(0);
-		}
+		vector<int> nodosClientesVisitados(instancia->numClientes, 0);
+        vector<int> listaClientes;
 
-		std::set<int> clientesGenerados;
-		int primerClienteRandom;
-		do {
-		    primerClienteRandom = rand() % instancia->numClientes; 
-		} while (clientesGenerados.count(primerClienteRandom) > 0);
-		clientesGenerados.insert(primerClienteRandom);
-		nodosClientesVisitados[primerClienteRandom] = 1;
+        // Inicializar la lista de clientes
+        for (int i = 0; i < instancia->numClientes; i++) {
+            listaClientes.push_back(i);
+        }
+
+        // Seleccionar el primer cliente aleatorio y removerlo de la lista
+        int primerClienteRandomIndex = rand() % listaClientes.size();
+        int primerClienteRandom = listaClientes[primerClienteRandomIndex];
+        listaClientes.erase(listaClientes.begin() + primerClienteRandomIndex);
+        nodosClientesVisitados[primerClienteRandom] = 1;
 
 		vector<RutaVehiculo> solucion;
 		while (true) {
@@ -485,15 +500,16 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 			if (sol.clientesVisitados == 0)  
 				break;
 
-			if (sol.ruta.size() == 0){
-				do {
-					primerClienteRandom = rand() % instancia->numClientes; 
-				} while (clientesGenerados.count(primerClienteRandom) > 0);
-				clientesGenerados.insert(primerClienteRandom);
-				nodosClientesVisitados[primerClienteRandom] = 1;
-			} else {
-				primerClienteRandom = -1;
-			}
+			// Verificar si se encontró una solución válida
+            if (sol.ruta.size() == 0 && !listaClientes.empty()) {
+                // Seleccionar un nuevo cliente aleatorio de la lista y removerlo
+                primerClienteRandomIndex = rand() % listaClientes.size();
+                primerClienteRandom = listaClientes[primerClienteRandomIndex];
+                listaClientes.erase(listaClientes.begin() + primerClienteRandomIndex);
+                nodosClientesVisitados[primerClienteRandom] = 1;
+            } else {
+                primerClienteRandom = -1;
+            }
 
 			solucion.push_back(sol);
 		}
@@ -503,7 +519,7 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 		vector<Nodo> ola = concatenarRuta(solucion);
 		vector<RutaVehiculo> god = separarRuta(ola);
 
-    	guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out");
+    	//guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out");
 	}
 	return solucionesIniciales;
 }
@@ -517,19 +533,264 @@ int funcionEvaluacion(const vector<RutaVehiculo>& solucion) {
 	return calidadTotal;
 }
 
+// Función para realizar el cruzamiento AEX
+
+vector<Nodo> AEXCrossover(const vector<Nodo>& parent1, const vector<Nodo>& parent2) {
+    set<Nodo> visitados;
+    vector<Nodo> hijo;
+    Nodo current = parent1[0]; // Iniciar con el primer nodo de parent1
+    hijo.push_back(current);
+    visitados.insert(current);
+
+    bool alternar = true; // Alternar entre padres
+
+    while (hijo.size() < parent1.size()) {
+        const vector<Nodo>& parent = alternar ? parent1 : parent2;
+
+        Nodo siguiente;
+        bool encontrado = false;
+
+        // Buscar el siguiente nodo en el padre actual
+        for (size_t i = 0; i < parent.size(); ++i) {
+            if (parent[i] == current && i + 1 < parent.size()) {
+                siguiente = parent[i + 1];
+
+                // Si es un nodo de depósito (`d0`), lo agregamos siempre
+                if (siguiente.tipo == 'd') {
+                    hijo.push_back(siguiente);
+                    current = siguiente;
+                    encontrado = true;
+                    break;
+                }
+
+                // Verificar si el siguiente nodo no ha sido visitado
+                if (visitados.find(siguiente) == visitados.end()) {
+                    hijo.push_back(siguiente);
+                    visitados.insert(siguiente);
+                    current = siguiente;
+                    encontrado = true;
+                    break;
+                }
+            }
+        }
+
+        // Si no se encuentra un nodo válido, seleccionar uno aleatorio no visitado
+        if (!encontrado) {
+            for (const auto& nodo : parent1) {
+                if (visitados.find(nodo) == visitados.end()) {
+                    hijo.push_back(nodo);
+                    visitados.insert(nodo);
+                    current = nodo;
+                    encontrado = true;
+                    break;
+                }
+            }
+        }
+
+        // Si aún no se ha encontrado, terminamos el ciclo
+        if (!encontrado) break;
+
+        // Alternar al siguiente padre
+        alternar = !alternar;
+    }
+
+    // Añadir el nodo de depósito al final si no está presente
+    if (hijo.back().tipo != 'd') {
+        hijo.push_back({0, 'd', 0.0, 0.0});
+    }
+
+    return hijo;
+}
+
+// CROSSOVER PAPER
+
+Nodo seleccionarClienteComun(const std::vector<Nodo>& parent1, const std::vector<Nodo>& parent2) {
+    vector<Nodo> clientesComunes;
+
+    for (const auto& nodo1 : parent1) {
+        if (nodo1.tipo == 'c' && find(parent2.begin(), parent2.end(), nodo1) != parent2.end()) {
+            clientesComunes.push_back(nodo1);
+        }
+    }
+
+    int indiceAleatorio = rand() % clientesComunes.size();
+    return clientesComunes[indiceAleatorio];
+}
+
+vector<Nodo> extraerSubruta(const vector<Nodo>& parent, const Nodo& clienteComun) {
+    vector<Nodo> subruta;
+    bool clienteEncontrado = false;
+    bool dentroDeSubruta = false;
+    int cont = 0;
+
+    // Buscar el depósito antes del cliente común para iniciar la subruta
+    for (size_t i = 0; i < parent.size(); ++i) {
+        const Nodo& nodo = parent[i];
+
+        if (nodo.tipo == 'c' && nodo == clienteComun) {
+            clienteEncontrado = true;
+        }
+
+        if (nodo.tipo == 'd'){
+            cont++;
+            if (cont == 2 && clienteEncontrado) {
+                break;
+            } else {
+                subruta.clear();
+                cont = 1;
+            }
+        }
+
+        if (nodo.tipo != 'd'){
+            subruta.push_back(nodo);
+        }
+    }
+
+    return subruta;
+}
+
+void imprimirRuta(const vector<Nodo>& ruta) {
+    for (const Nodo& nodo : ruta) {
+        if (nodo.tipo == 'd') cout << "d0 ";
+        else if (nodo.tipo == 'c') cout << "c" << nodo.id << " ";
+        else if (nodo.tipo == 'f') cout << "f" << nodo.id << " ";
+    }
+    cout << endl;
+}
+
+vector<Nodo> crearSub2(const std::vector<Nodo>& V1, const std::vector<Nodo>& V2) {
+    std::set<Nodo> unionV1V2(V2.begin(), V2.end());
+    std::vector<Nodo> sub2;
+
+    for (const auto& nodo : V1) {
+        unionV1V2.insert(nodo);
+    }
+
+    for (const auto& nodo : unionV1V2) {
+        if (find(V1.begin(), V1.end(), nodo) == V1.end()) {
+            sub2.push_back(nodo);
+        }
+    }
+
+    return sub2;
+}
+
+std::vector<Nodo> concatenate(const std::vector<Nodo>& vec1, const std::vector<Nodo>& vec2) {
+    std::vector<Nodo> result = vec1;
+
+    if (!result.empty() && !vec2.empty() && result.back().tipo == 'd' && vec2.front().tipo == 'd') {
+        result.insert(result.end(), vec2.begin() + 1, vec2.end());
+    } else {
+        result.insert(result.end(), vec2.begin(), vec2.end());
+    }
+
+    return result;
+}
+
+std::vector<Nodo> reverse(const std::vector<Nodo>& vec) {
+    std::vector<Nodo> reversedVec = vec;
+    reverse(reversedVec.begin(), reversedVec.end());
+    return reversedVec;
+}
+
+vector<Nodo> crearHijoConReemplazo(const vector<Nodo>& parent, vector<Nodo> SC) {
+    vector<Nodo> hijo;
+    set<Nodo> elementosSC(SC.begin(), SC.end());
+
+    for (const Nodo& nodo : parent) {
+        if (elementosSC.find(nodo) != elementosSC.end() && !SC.empty()) {
+            hijo.push_back(SC.front()); 
+            SC.erase(SC.begin());     
+        } else {
+            hijo.push_back(nodo);
+        }
+    }
+
+    return hijo;
+}
+
+
+pair<vector<Nodo>, vector<Nodo>> crossover(const vector<Nodo>& parent1, const vector<Nodo>& parent2) {
+    vector<Nodo> hijo1, hijo2, sub1, subruta2, sub2, SC1, SC2;
+
+    Nodo clienteComun = seleccionarClienteComun(parent1, parent2);
+
+    // cout << "Cliente común seleccionado: c" << clienteComun.id << endl;
+
+    sub1 = extraerSubruta(parent1, clienteComun);
+    subruta2 = extraerSubruta(parent2, clienteComun);
+    sub2 = crearSub2(sub1, subruta2);
+
+    // cout << "Subruta 1: "; imprimirRuta(sub1);
+    // cout << "Subruta 2: "; imprimirRuta(sub2);
+
+    SC1 = concatenate(sub2, sub1);
+    SC2 = concatenate(reverse(sub1), reverse(sub2));
+
+    // cout << "SC1: "; imprimirRuta(SC1);
+    // cout << "SC2: "; imprimirRuta(SC2);
+
+    // Crear hijo1 y hijo2 utilizando el reemplazo
+    hijo1 = crearHijoConReemplazo(parent1, SC1);
+    hijo2 = crearHijoConReemplazo(parent2, SC2);
+
+    return {hijo1, hijo2};
+}
+
+// ---------------------------- MAIN ----------------------------
+
+
 int main() {
 	srand(time(nullptr));
 
     vector<vector<RutaVehiculo>> solucionesIniciales;  // Vector para almacenar todas las soluciones
     Instancia* instancia = leerInstancia("instancias/AB101.dat");
-	int cantidadPoblacionInicial = 10;
+	int cantidadPoblacionInicial = instancia->numClientes;
 
     auto inicio = high_resolution_clock::now();
 
 	solucionesIniciales = generarSolucionesIniciales(instancia, cantidadPoblacionInicial);
 
+	bool flag = true;
+	bool flag2 = false;
+
+	while (flag == true) {
+		// selecciona 2 soluciones aleatorias y realiza el cruzamiento
+		int indiceSolucion1 = rand() % cantidadPoblacionInicial;
+		int indiceSolucion2 = rand() % cantidadPoblacionInicial;
+
+		vector<RutaVehiculo> solucion1 = solucionesIniciales[indiceSolucion1];
+		vector<RutaVehiculo> solucion2 = solucionesIniciales[indiceSolucion2];
+
+		vector<Nodo> rutaConcatenada1 = concatenarRuta(solucion1);
+		vector<Nodo> rutaConcatenada2 = concatenarRuta(solucion2);
+
+		auto [hijo1, hijo2] = crossover(rutaConcatenada1, rutaConcatenada2);
+
+		auto resultado1 =  verificarRutaValida(hijo1, instancia);
+		auto resultado2 = verificarRutaValida(hijo2, instancia);
+
+		if (resultado1.first != -1 && resultado1.first < funcionEvaluacion(solucion1) && resultado1.first < funcionEvaluacion(solucion2)) {
+			cout << "Ruta 1 valida con calidad: " << resultado1.first << " clientes visitados: " << resultado1.second << endl;
+			flag2 = true;
+		}
+
+		if (resultado2.first != -1 && resultado2.first < funcionEvaluacion(solucion1) && resultado2.first < funcionEvaluacion(solucion2)) {
+			cout << "Ruta 2 valida con calidad: " << resultado2.first << " clientes visitados: " << resultado2.second << endl;
+			flag2 = true;
+		}
+
+
+		if (flag2){
+			cout << "Calidad padres: " << funcionEvaluacion(solucion1) << " y " << funcionEvaluacion(solucion2) << endl;
+			flag = false;
+		} 
+	
+	}
+
     auto fin = high_resolution_clock::now();
     double tiempoEjecucion = duration<double>(fin - inicio).count();
+	cout << "tiempo ejecucion: " << tiempoEjecucion << endl;
 
     return 0;
 }
