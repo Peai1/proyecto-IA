@@ -6,6 +6,12 @@
 # Exceptuar main.cpp
 !main.cpp
 
+!crossover.cpp
+!crossover.h
+
+!structs.cpp
+!structs.h
+
 # Exceptuar la carpeta instancias y todo su contenido
 !instancias/
 !instancias/**
