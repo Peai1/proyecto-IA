@@ -1,0 +1,13 @@
+# Ignorar todo por defecto
+*
+
+!.gitignore
+
+# Exceptuar main.cpp
+!main.cpp
+
+# Exceptuar carpeta instancias
+!instancias/
+
+# Ignorar archivos específicos dentro de instancias si es necesario
+instancias/*.out
