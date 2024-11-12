@@ -8,6 +8,3 @@
 
 # Exceptuar carpeta instancias
 !instancias/
-
-# Ignorar archivos específicos dentro de instancias si es necesario
-instancias/*.out
