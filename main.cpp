@@ -181,7 +181,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	double distanciaAFsDeposito; // distancia de la estacion de servicio al deposito para regresar
 	double tiempoAux = 0, tiempoSiguienteNodo = 0;
 	double tiempoFinalRegreso = 0, distanciaFinalRegreso = 0;
-	int necesitaRepostar = 1, terminarCiclo = 1, puedeRetornarDeposito = 0;
+	int necesitaRepostar = 1, terminarEjecucion = 1, puedeRetornarDeposito = 0;
 	int totalClientes = 0;
 	int AFsID; // ID de la estacion de servicio para regresar al deposito
 
@@ -249,7 +249,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				// If se encuentra un nodo mas cercano y la distancia acumulada no excede la distancia maxima del vehiculo
 				if(distanciaProximoCliente < distanciaMinimaEncontrada && distanciaVehiculoAcumulada + distanciaProximoCliente < instancia->distanciaMaxima) {
 
-					// Distancia al deposito
+					// Se debe verificar si se puede regresar al deposito desde el nodo actual + al que se piensa mover
 					distanciaAlDeposito = calcularDistanciaHaversine(longitudDeposito, latitudDeposito, nodoAuxiliar.longitud, nodoAuxiliar.latitud);
 
 					// Verificar si se puede regresar al deposito desde el nodo actual + al que se piensa mover
@@ -265,7 +265,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 							distanciaMinimaEncontrada = distanciaProximoCliente;
 							tiempoSiguienteNodo = tiempoAux;
 							necesitaRepostar = 0;
-							terminarCiclo = 0;
+							terminarEjecucion = 0;
 							distanciaFinalRegreso = distanciaAlDeposito;
 							tiempoFinalRegreso = distanciaAlDeposito / instancia->velocidad;
 						}
@@ -287,7 +287,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 									distanciaMinimaEncontrada = distanciaProximoCliente;
 									tiempoSiguienteNodo = tiempoAux;
 									necesitaRepostar = 0;
-									terminarCiclo = 0;
+									terminarEjecucion = 0;
 									tiempoFinalRegreso = tiempoAFS;
 									distanciaFinalRegreso = distanciaAFS + distanciaAFsDeposito;
 								}
@@ -309,23 +309,13 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 				nodoSiguiente = instancia->nodosEstaciones[AFsID];
 				distanciaMinimaEncontrada = distanciaAFS;
 				tiempoSiguienteNodo = instancia->tiempoRecarga + (distanciaAFS / instancia->velocidad);
-				terminarCiclo = 0;
+				terminarEjecucion = 0;
 				distanciaVehiculoAcumulada = 0;
-
-				// Si es distinto del deposito
-				if(AFsID != 0) {
-					tiempoFinalRegreso = distanciaAFsDeposito/instancia->velocidad;
-					distanciaFinalRegreso = distanciaAFsDeposito;
-				}
-
-				// Si la estacion de servicio es el deposito
-				else {
-					tiempoFinalRegreso = distanciaAFS/instancia->velocidad;
-					distanciaFinalRegreso = distanciaAFS;
-				}
+				tiempoFinalRegreso = distanciaAFsDeposito/instancia->velocidad;
+				distanciaFinalRegreso = distanciaAFsDeposito;
 			}
 		}
-		if(terminarCiclo || !puedeRetornarDeposito) break;
+		if(terminarEjecucion || !puedeRetornarDeposito) break;
 
 		if(!necesitaRepostar) 
 			nodosClientesVisitados[nodoSiguiente.id-1] = 1;
@@ -335,7 +325,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 		calidadRuta += distanciaMinimaEncontrada;
 		distanciaMinimaEncontrada = 9999999;
 		necesitaRepostar = 1;
-		terminarCiclo = 1;
+		terminarEjecucion = 1;
 		puedeRetornarDeposito = 0;
 		nodoActual = nodoSiguiente;
 		if(nodoSiguiente.tipo == 'c') 
