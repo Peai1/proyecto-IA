@@ -6,5 +6,6 @@
 # Exceptuar main.cpp
 !main.cpp
 
-# Exceptuar carpeta instancias
+# Exceptuar la carpeta instancias y todo su contenido
 !instancias/
+!instancias/**
