@@ -185,7 +185,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	double distanciaVehiculoAcumulada = 0;
 	double tiempoVehiculoAcumulado = 0;
 	double distanciaAlDeposito = 0;
-	double distanciaMinimaEncontrada = 9999999;
+	double distanciaMinimaEncontrada = 99999999999;
 	double latitudActual, longitudActual;
 	double latitudNodoNext, longitudNodoNext;
 	double tiempoAFS; // tiempo hasta AFS + AFS->deposito
@@ -205,11 +205,11 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	if (primerClienteRandom != -1) {
 		Nodo nodoClienteRandom = instancia->nodosClientes[primerClienteRandom];
 		distanciaProximoCliente = calcularDistanciaHaversine(instancia->deposito.longitud, instancia->deposito.latitud, nodoClienteRandom.longitud, nodoClienteRandom.latitud);
-		if (distanciaProximoCliente < instancia->distanciaMaxima) {
+		if (distanciaProximoCliente + distanciaVehiculoAcumulada < instancia->distanciaMaxima) {
 			distanciaAlDeposito = calcularDistanciaHaversine(instancia->deposito.longitud, instancia->deposito.latitud, nodoClienteRandom.longitud, nodoClienteRandom.latitud);
-			if (distanciaProximoCliente + distanciaAlDeposito <= instancia->distanciaMaxima) {
+			if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAlDeposito <= instancia->distanciaMaxima) {
 				tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
-				if (tiempoAux + (distanciaAlDeposito / instancia->velocidad) <= instancia->tiempoMaximo) {
+				if (tiempoAux + tiempoVehiculoAcumulado + (distanciaAlDeposito / instancia->velocidad) <= instancia->tiempoMaximo) {
 					tiempoFinalRegreso = distanciaAlDeposito / instancia->velocidad;
 					distanciaFinalRegreso =  distanciaAlDeposito;
 					distanciaVehiculoAcumulada += distanciaProximoCliente;
@@ -218,13 +218,14 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 					rutaVehiculoGreedy.push_back(nodoClienteRandom);
 					nodosClientesVisitados[primerClienteRandom] = 1;
 					nodoActual = nodoClienteRandom;
+                    totalClientes++;
 				}
 			} else {
-				AFsID = verificarRegreso(distanciaProximoCliente, tiempoVehiculoAcumulado, nodoClienteRandom.longitud, nodoClienteRandom.latitud, instancia, tiempoAFS, distanciaAFS, distanciaAFsDeposito);
+				AFsID = verificarRegreso(distanciaVehiculoAcumulada + distanciaProximoCliente, tiempoVehiculoAcumulado, nodoClienteRandom.longitud, nodoClienteRandom.latitud, instancia, tiempoAFS, distanciaAFS, distanciaAFsDeposito);
 				if (AFsID != -1){
-					if (distanciaProximoCliente + distanciaAFS + distanciaAFsDeposito <= instancia->distanciaMaxima) {
+					if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS  <= instancia->distanciaMaxima) {
 						tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
-						if (tiempoAux + tiempoAFS <= instancia->tiempoMaximo) {
+						if (tiempoAux + tiempoVehiculoAcumulado + tiempoAFS <= instancia->tiempoMaximo) {
 							tiempoFinalRegreso = tiempoAFS;
 							distanciaFinalRegreso = distanciaAFS + distanciaAFsDeposito;
 							distanciaVehiculoAcumulada += distanciaProximoCliente;
@@ -233,6 +234,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 							rutaVehiculoGreedy.push_back(nodoClienteRandom);
 							nodosClientesVisitados[primerClienteRandom] = 1;
 							nodoActual = nodoClienteRandom;
+                            totalClientes++;
 						}
 					}
 				} else {
@@ -291,7 +293,7 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 						if (AFsID != -1) {
 							puedeRetornarDeposito = 1;
 
-							if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS + distanciaAFsDeposito <= instancia->distanciaMaxima) {
+							if (distanciaVehiculoAcumulada + distanciaProximoCliente + distanciaAFS  <= instancia->distanciaMaxima) {
 								
 								tiempoAux = (distanciaProximoCliente / instancia->velocidad) + instancia->tiempoServicio;
 
@@ -492,7 +494,6 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
         int primerClienteRandomIndex = rand() % listaClientes.size();
         int primerClienteRandom = listaClientes[primerClienteRandomIndex];
         listaClientes.erase(listaClientes.begin() + primerClienteRandomIndex);
-        nodosClientesVisitados[primerClienteRandom] = 1;
 
 		vector<RutaVehiculo> solucion;
 		while (true) {
@@ -506,7 +507,7 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
                 primerClienteRandomIndex = rand() % listaClientes.size();
                 primerClienteRandom = listaClientes[primerClienteRandomIndex];
                 listaClientes.erase(listaClientes.begin() + primerClienteRandomIndex);
-                nodosClientesVisitados[primerClienteRandom] = 1;
+                cout<<"Nuevo cliente random: "<<primerClienteRandom<<endl;
             } else {
                 primerClienteRandom = -1;
             }
@@ -516,8 +517,8 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 		solucionesIniciales.push_back(solucion);
 
 		// test
-		vector<Nodo> ola = concatenarRuta(solucion);
-		vector<RutaVehiculo> god = separarRuta(ola);
+		// vector<Nodo> ola = concatenarRuta(solucion);
+		// vector<RutaVehiculo> god = separarRuta(ola);
 
     	//guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out");
 	}
