@@ -369,12 +369,12 @@ void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& s
         totalClientes += sol.clientesVisitados;
     }
 
-    archivoSalida << std::fixed << std::setprecision(2);
+    archivoSalida << fixed << setprecision(2);
     archivoSalida << calidadTotal << "\t" << totalClientes << "\t" << soluciones.size() << "\t" << tiempoEjecucion << endl << endl;
 
     // Guardar cada solución individualmente con alineación adecuada
     for (const auto& sol : soluciones) {
-        std::ostringstream rutaStream;
+        ostringstream rutaStream;
 
         // Generar la cadena de la ruta
         for (size_t j = 0; j < sol.ruta.size(); ++j) {
@@ -387,10 +387,10 @@ void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& s
         }
 
         // Imprimir la ruta y los valores numéricos alineados
-        archivoSalida << std::left << std::setw(65) << rutaStream.str()
-                      << std::right << std::setw(15) << sol.calidadRuta
-                      << std::setw(15) << sol.tiempoAcumuladoVehiculo
-                      << std::setw(10) << 0 << endl;
+        archivoSalida << left << setw(65) << rutaStream.str()
+                      << right << setw(15) << sol.calidadRuta
+                      << setw(15) << sol.tiempoAcumuladoVehiculo
+                      << setw(10) << 0 << endl;
     }
 }
 
@@ -409,79 +409,10 @@ vector<Nodo> concatenarRuta(const vector<RutaVehiculo>& solucion) {
     return rutaConcatenada;
 }
 
-// Funcion para separar una lista concatenada de rutas de los vehiculos en un vector de vectores
-vector<RutaVehiculo> separarRuta(const vector<Nodo>& rutaConcatenada) {
-    vector<RutaVehiculo> solucion;
-    vector<Nodo> rutaVehiculo;
-    Nodo deposito = {0, 'd', 0.0, 0.0};
 
-    // Recorrer la ruta concatenada
-    for (const auto& nodo : rutaConcatenada) {
-        if (nodo.tipo == 'd') {
-            if (!rutaVehiculo.empty()) {
-                rutaVehiculo.insert(rutaVehiculo.begin(), deposito);
-                rutaVehiculo.push_back(deposito);
-                solucion.emplace_back(rutaVehiculo, 0.0, 0.0, rutaVehiculo.size());
-                rutaVehiculo.clear();
-            }
-        } else {
-            rutaVehiculo.push_back(nodo);
-        }
-	}
-    return solucion;
-}
-
-
-pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
-    vector<RutaVehiculo> rutasSeparadas = separarRuta(rutaConcatenada);
-	double calidadTotal = 0;
-	double clientesVisitados = 0;
-
-    for (const auto& rutaVehiculo : rutasSeparadas) {
-        double distanciaAcumulada = 0.0;
-        double tiempoAcumulado = 0.0;
-        Nodo nodoActual = instancia->deposito;
-
-        if (rutaVehiculo.ruta.front().tipo != 'd' || rutaVehiculo.ruta.back().tipo != 'd') {
-            return make_pair(-1,-1);
-        }
-
-        // Recorrer la ruta del vehículo
-        for (size_t i = 1; i < rutaVehiculo.ruta.size(); ++i) {
-            Nodo nodoSiguiente = rutaVehiculo.ruta[i];
-            double distancia = 0.0;
-
-            if (nodoSiguiente.tipo == 'c') {
-                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id - 1];
-                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, cliente.longitud, cliente.latitud);
-                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoServicio;
-				clientesVisitados++;
-            } else if (nodoSiguiente.tipo == 'f') {
-                Nodo estacion = instancia->nodosEstaciones[nodoSiguiente.id];
-                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, estacion.longitud, estacion.latitud);
-                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoRecarga;
-                distanciaAcumulada = 0; 
-            } else if (nodoSiguiente.tipo == 'd') {
-                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, instancia->deposito.longitud, instancia->deposito.latitud);
-            }
-
-            distanciaAcumulada += distancia;
-			calidadTotal += distancia;
-
-            if (distanciaAcumulada > instancia->distanciaMaxima || tiempoAcumulado > instancia->tiempoMaximo) {
-                return make_pair(-1,-1);		
-            }
-
-            nodoActual = nodoSiguiente;
-        }
-    }
-
-    return make_pair(calidadTotal, clientesVisitados);
-}
-
-vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instancia, int cantidadPoblacionInicial) {
+vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instancia, int cantidadPoblacion) {
 	vector<vector<RutaVehiculo>> solucionesIniciales;
-	for (int i = 0; i < cantidadPoblacionInicial; i ++){
+	for (int i = 0; i < cantidadPoblacion; i ++){
 		vector<int> nodosClientesVisitados(instancia->numClientes, 0);
         vector<int> listaClientes;
 
@@ -516,11 +447,7 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 		}
 		solucionesIniciales.push_back(solucion);
 
-		// test
-		// vector<Nodo> ola = concatenarRuta(solucion);
-		// vector<RutaVehiculo> god = separarRuta(ola);
-
-    	//guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out");
+    	// guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out");
 	}
 	return solucionesIniciales;
 }
@@ -605,7 +532,7 @@ vector<Nodo> AEXCrossover(const vector<Nodo>& parent1, const vector<Nodo>& paren
 
 // CROSSOVER PAPER
 
-Nodo seleccionarClienteComun(const std::vector<Nodo>& parent1, const std::vector<Nodo>& parent2) {
+Nodo seleccionarClienteComun(const vector<Nodo>& parent1, const vector<Nodo>& parent2) {
     vector<Nodo> clientesComunes;
 
     for (const auto& nodo1 : parent1) {
@@ -659,9 +586,9 @@ void imprimirRuta(const vector<Nodo>& ruta) {
     cout << endl;
 }
 
-vector<Nodo> crearSub2(const std::vector<Nodo>& V1, const std::vector<Nodo>& V2) {
-    std::set<Nodo> unionV1V2(V2.begin(), V2.end());
-    std::vector<Nodo> sub2;
+vector<Nodo> crearSub2(const vector<Nodo>& V1, const vector<Nodo>& V2) {
+    set<Nodo> unionV1V2(V2.begin(), V2.end());
+    vector<Nodo> sub2;
 
     for (const auto& nodo : V1) {
         unionV1V2.insert(nodo);
@@ -676,8 +603,8 @@ vector<Nodo> crearSub2(const std::vector<Nodo>& V1, const std::vector<Nodo>& V2)
     return sub2;
 }
 
-std::vector<Nodo> concatenate(const std::vector<Nodo>& vec1, const std::vector<Nodo>& vec2) {
-    std::vector<Nodo> result = vec1;
+vector<Nodo> concatenate(const vector<Nodo>& vec1, const vector<Nodo>& vec2) {
+    vector<Nodo> result = vec1;
 
     if (!result.empty() && !vec2.empty() && result.back().tipo == 'd' && vec2.front().tipo == 'd') {
         result.insert(result.end(), vec2.begin() + 1, vec2.end());
@@ -688,8 +615,8 @@ std::vector<Nodo> concatenate(const std::vector<Nodo>& vec1, const std::vector<N
     return result;
 }
 
-std::vector<Nodo> reverse(const std::vector<Nodo>& vec) {
-    std::vector<Nodo> reversedVec = vec;
+vector<Nodo> reverse(const vector<Nodo>& vec) {
+    vector<Nodo> reversedVec = vec;
     reverse(reversedVec.begin(), reversedVec.end());
     return reversedVec;
 }
@@ -736,48 +663,293 @@ pair<vector<Nodo>, vector<Nodo>> crossover(const vector<Nodo>& parent1, const ve
     return {hijo1, hijo2};
 }
 
+// mutacion 2-opt
+
+vector<Nodo> mutacion2Opt(const vector<Nodo>& rutaOriginal) {
+    vector<Nodo> rutaMutada = rutaOriginal;
+    size_t n = rutaMutada.size();
+
+    // Encontrar los índices de los depósitos para evitar alterarlos
+    vector<size_t> indicesDepositos;
+    for (size_t i = 0; i < n; ++i) {
+        if (rutaMutada[i].tipo == 'd') {
+            indicesDepositos.push_back(i);
+        }
+    }
+
+    // Seleccionar dos puntos de corte aleatorios entre los depósitos
+    size_t start, end;
+    do {
+        start = rand() % n;
+        end = rand() % n;
+        // Asegurarse de que start y end están en posiciones válidas y no contienen depósitos
+    } while (start >= end || find(indicesDepositos.begin(), indicesDepositos.end(), start) != indicesDepositos.end() ||
+             find(indicesDepositos.begin(), indicesDepositos.end(), end) != indicesDepositos.end());
+
+    // Aplicar el intercambio 2-opt invirtiendo la subruta entre start y end
+    reverse(rutaMutada.begin() + start, rutaMutada.begin() + end + 1);
+
+    return rutaMutada;
+}
+
+// Funcion para separar una lista concatenada de rutas de los vehiculos en un vector de vectores
+vector<RutaVehiculo> separarRuta(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
+    vector<RutaVehiculo> solucion;
+    vector<Nodo> rutaVehiculo;
+    Nodo deposito = instancia->deposito;
+
+    // Recorrer la ruta concatenada
+    for (const auto& nodo : rutaConcatenada) {
+        if (nodo.tipo == 'd') {
+            if (!rutaVehiculo.empty()) {
+                // Iniciar los cálculos de calidad y tiempo para esta subruta
+                double calidadRuta = 0.0;
+                double tiempoAcumuladoVehiculo = 0.0;
+                int clientesVisitados = 0;
+
+                // Insertar depósito al inicio y al final de la subruta
+                rutaVehiculo.insert(rutaVehiculo.begin(), deposito);
+                rutaVehiculo.push_back(deposito);
+
+                Nodo nodoActual = deposito;
+
+                // Recorrer los nodos de la subruta y calcular métricas
+                for (const auto& nodoSiguiente : rutaVehiculo) {
+                    double distancia = calcularDistanciaHaversine(
+                        nodoActual.longitud, nodoActual.latitud,
+                        nodoSiguiente.longitud, nodoSiguiente.latitud
+                    );
+
+                    calidadRuta += distancia;
+                    tiempoAcumuladoVehiculo += distancia / instancia->velocidad;
+
+                    // Verificar el tipo de nodo para agregar tiempos adicionales
+                    if (nodoSiguiente.tipo == 'c') {
+                        tiempoAcumuladoVehiculo += instancia->tiempoServicio;
+                        clientesVisitados++;
+                    } else if (nodoSiguiente.tipo == 'f') {
+                        tiempoAcumuladoVehiculo += instancia->tiempoRecarga;
+                    }
+
+                    nodoActual = nodoSiguiente;
+                }
+
+                // Crear la RutaVehiculo con las métricas calculadas
+                solucion.emplace_back(rutaVehiculo, tiempoAcumuladoVehiculo, calidadRuta, clientesVisitados);
+
+                // Limpiar la subruta para la siguiente iteración
+                rutaVehiculo.clear();
+            }
+        } else {
+            rutaVehiculo.push_back(nodo);
+        }
+    }
+
+    return solucion;
+}
+
+pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
+    // cout << "ruta concatenada: "; imprimirRuta(rutaConcatenada);
+
+    vector<RutaVehiculo> rutasSeparadas = separarRuta(rutaConcatenada, instancia);
+	double calidadTotal = 0;
+	double clientesVisitados = 0;
+
+    for (const auto& rutaVehiculo : rutasSeparadas) {
+        double distanciaAcumulada = 0.0;
+        double tiempoAcumulado = 0.0;
+        Nodo nodoActual = instancia->deposito;
+
+        if (rutaVehiculo.ruta.front().tipo != 'd' || rutaVehiculo.ruta.back().tipo != 'd') {
+            return make_pair(-1,-1);
+        }
+        // cout << "ruta vehiculo: "; imprimirRuta(rutaVehiculo.ruta);
+        // Recorrer la ruta del vehículo
+        for (size_t i = 0; i < rutaVehiculo.ruta.size(); ++i) {
+            Nodo nodoSiguiente = rutaVehiculo.ruta[i];
+            double distancia = 0.0;
+
+            if (nodoSiguiente.tipo == 'c') {
+                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id - 1];
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, cliente.longitud, cliente.latitud);
+                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoServicio;
+				distanciaAcumulada += distancia;
+
+                if (tiempoAcumulado > instancia->tiempoMaximo || distancia > instancia->distanciaMaxima) {
+                    return make_pair(-1,-1);
+                }
+
+                calidadTotal += distancia;
+                clientesVisitados++;
+
+            } else if (nodoSiguiente.tipo == 'f') {
+                Nodo estacion = instancia->nodosEstaciones[nodoSiguiente.id];
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, estacion.longitud, estacion.latitud);
+                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoRecarga;
+                distanciaAcumulada += distancia;
+
+                if (tiempoAcumulado > instancia->tiempoMaximo || distancia > instancia->distanciaMaxima) {
+                    return make_pair(-1,-1);
+                }
+                
+                calidadTotal += distancia;
+                distanciaAcumulada = 0;
+
+            } else if (nodoSiguiente.tipo == 'd') {
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, instancia->deposito.longitud, instancia->deposito.latitud);
+                tiempoAcumulado += distancia / instancia->velocidad;
+                distanciaAcumulada += distancia;
+
+                if (distanciaAcumulada > instancia->distanciaMaxima || tiempoAcumulado > instancia->tiempoMaximo) {
+                    return make_pair(-1,-1);		
+                }
+
+                calidadTotal += distancia;
+            }
+
+            nodoActual = nodoSiguiente;
+        }
+    }
+
+    return make_pair(calidadTotal, clientesVisitados);
+}
+
+
+// mutacion heuristic swap paper
+
+// Función para aplicar la mutación Heuristic-Swap
+vector<Nodo> mutacionHeuristicSwap(const vector<Nodo>& cromosoma) {
+    vector<Nodo> cromosomaMutado = cromosoma;
+    size_t n = cromosomaMutado.size();
+
+    // Encontrar todos los clientes en el cromosoma
+    vector<size_t> indicesClientes;
+    for (size_t i = 0; i < n; ++i) {
+        if (cromosomaMutado[i].tipo == 'c') {
+            indicesClientes.push_back(i);
+        }
+    }
+
+    // Seleccionar un cliente aleatorio
+    if (indicesClientes.empty()) {
+        return cromosomaMutado; // No hay clientes para mutar
+    }
+
+    size_t indexCi = indicesClientes[rand() % indicesClientes.size()];
+    Nodo clienteCi = cromosomaMutado[indexCi];
+
+    // Buscar el cliente Cj más cercano de una ruta diferente
+    double distanciaMinima = numeric_limits<double>::max();
+    size_t indexCj = indexCi; // Inicializar con el mismo índice para evitar auto-intercambio
+
+    for (size_t i = 0; i < n; ++i) {
+        if (i != indexCi && cromosomaMutado[i].tipo == 'c') {
+            double distancia = calcularDistanciaHaversine(clienteCi.longitud, clienteCi.latitud, cromosomaMutado[i].longitud, cromosomaMutado[i].latitud);
+            if (distancia < distanciaMinima) {
+                distanciaMinima = distancia;
+                indexCj = i;
+            }
+        }
+    }
+
+    // Intercambiar las posiciones de los clientes Ci y Cj
+    if (indexCj != indexCi) {
+        swap(cromosomaMutado[indexCi], cromosomaMutado[indexCj]);
+    }
+
+    return cromosomaMutado;
+}
+
 // Algoritmo evolutivo
 
-void algoritmoEvolutivo(int cantidadPoblacionInicial, Instancia* instancia) {
-    bool flag = true;
-	bool flag2 = false;
+void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* instancia)  {
 
-    vector<vector<RutaVehiculo>> solucionesIniciales = generarSolucionesIniciales(instancia, cantidadPoblacionInicial);
+    vector<vector<RutaVehiculo>> poblacion = generarSolucionesIniciales(instancia, cantidadPoblacion);
 
-	while (flag == true) {
-		// selecciona 2 soluciones aleatorias y realiza el cruzamiento
-		int indiceSolucion1 = rand() % cantidadPoblacionInicial;
-		int indiceSolucion2 = rand() % cantidadPoblacionInicial;
+    // Mostrar la mejor solución inicial
+    double mejorCalidadInicial = std::numeric_limits<double>::max();
+    vector<RutaVehiculo> mejorSolucionInicial, sol1, sol2;
 
-		vector<RutaVehiculo> solucion1 = solucionesIniciales[indiceSolucion1];
-		vector<RutaVehiculo> solucion2 = solucionesIniciales[indiceSolucion2];
+    for (const auto& solucion : poblacion) {
+        double calidad = funcionEvaluacion(solucion);
+        if (calidad < mejorCalidadInicial) {
+            mejorCalidadInicial = calidad;
+            mejorSolucionInicial = solucion;
+        }
+    }
 
-		vector<Nodo> rutaConcatenada1 = concatenarRuta(solucion1);
-		vector<Nodo> rutaConcatenada2 = concatenarRuta(solucion2);
+    cout << "Mejor calidad de la poblacion inicial: " << mejorCalidadInicial << endl;
 
-		auto [hijo1, hijo2] = crossover(rutaConcatenada1, rutaConcatenada2);
+    vector<RutaVehiculo> mejorSolucion;
 
-		auto resultado1 =  verificarRutaValida(hijo1, instancia);
-		auto resultado2 = verificarRutaValida(hijo2, instancia);
+	// Iterar el algoritmo evolutivo m veces
+    for (int iteracion = 0; iteracion < mIteraciones; ++iteracion) {
+        vector<vector<RutaVehiculo>> nuevaPoblacion;
 
-		if (resultado1.first != -1 && resultado1.first < funcionEvaluacion(solucion1) && resultado1.first < funcionEvaluacion(solucion2)) {
-			cout << "Ruta 1 valida con calidad: " << resultado1.first << " clientes visitados: " << resultado1.second << endl;
-			flag2 = true;
-		}
+        // Generar n hijos mejores que los padres
+        while (nuevaPoblacion.size() < cantidadPoblacion) {
+            // Seleccionar 2 soluciones aleatorias mediante selección por ranking
+            int indiceSolucion1 = rand() % cantidadPoblacion;
+            int indiceSolucion2 = rand() % cantidadPoblacion;
 
-		if (resultado2.first != -1 && resultado2.first < funcionEvaluacion(solucion1) && resultado2.first < funcionEvaluacion(solucion2)) {
-			cout << "Ruta 2 valida con calidad: " << resultado2.first << " clientes visitados: " << resultado2.second << endl;
-			flag2 = true;
-		}
+            vector<RutaVehiculo> solucion1 = poblacion[indiceSolucion1];
+            vector<RutaVehiculo> solucion2 = poblacion[indiceSolucion2];
 
+            vector<Nodo> rutaConcatenada1 = concatenarRuta(solucion1);
+            vector<Nodo> rutaConcatenada2 = concatenarRuta(solucion2);
 
-		if (flag2){
-			cout << "Calidad padres: " << funcionEvaluacion(solucion1) << " y " << funcionEvaluacion(solucion2) << endl;
-			flag = false;
-		} 
-	
-	}
+            // Aplicar crossover
+            auto [hijo1, hijo2] = crossover(rutaConcatenada1, rutaConcatenada2);
+
+            // Aplicar mutaciones a ambos hijos
+            hijo1 = mutacion2Opt(hijo1);
+            hijo1 = mutacionHeuristicSwap(hijo1);
+
+            hijo2 = mutacion2Opt(hijo2);
+            hijo2 = mutacionHeuristicSwap(hijo2);
+
+            // Verificar rutas válidas y agregar a la nueva población si mejoran a los padres
+            auto resultado1 = verificarRutaValida(hijo1, instancia);
+            auto resultado2 = verificarRutaValida(hijo2, instancia);
+
+            if (resultado1.first != -1 && resultado1.first < funcionEvaluacion(solucion1) && resultado1.first < funcionEvaluacion(solucion2)) {
+                //cout << "Hijo 1 calidad: " << resultado1.first << endl;
+                sol1 = separarRuta(hijo1, instancia);
+                nuevaPoblacion.push_back(sol1);
+            }
+
+            if (resultado2.first != -1 && resultado2.first < funcionEvaluacion(solucion1) && resultado2.first < funcionEvaluacion(solucion2)) {
+                //cout << "Hijo 2 calidad: " << resultado2.first << endl;
+                sol2 = separarRuta(hijo2, instancia);
+                nuevaPoblacion.push_back(sol2);
+            }
+        }
+
+        poblacion = nuevaPoblacion;
+
+        // Encontrar la mejor solucion de la nueva poblacion
+        double mejorCalidad = numeric_limits<double>::max();
+
+        for (const auto& solucion : poblacion) {
+            double calidad = funcionEvaluacion(solucion);
+            if (calidad < mejorCalidad) {
+                mejorCalidad = calidad;
+                mejorSolucion = solucion;
+            }
+        }
+
+        cout << "Iteracion " << iteracion + 1 << ": Mejor solucion: " << mejorCalidad << endl;
+    }
+
+    auto mejorSol = verificarRutaValida(concatenarRuta(mejorSolucion), instancia);
+    if (mejorSol.first != -1) {
+        cout << "Mejor solucion final valida: " << mejorSol.first << endl;
+    } else {
+        cout << "Mejor solucion final: " << endl;
+    }
+    guardarSoluciones(instancia, mejorSolucion, instancia->nombre + "_solucion.out");
 }
+
 
 // ---------------------------- MAIN ----------------------------
 
@@ -785,11 +957,12 @@ int main() {
 	srand(time(nullptr));
 
     Instancia* instancia = leerInstancia("instancias/AB101.dat");
-	int cantidadPoblacionInicial = instancia->numClientes;
+	int cantidadPoblacion = 20;
+    int mIteraciones = 20;
 
     auto inicio = high_resolution_clock::now();
 
-	algoritmoEvolutivo(cantidadPoblacionInicial, instancia);
+	algoritmoEvolutivo(cantidadPoblacion, mIteraciones, instancia);
 
     auto fin = high_resolution_clock::now();
 
