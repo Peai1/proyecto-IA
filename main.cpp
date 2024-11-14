@@ -745,6 +745,12 @@ vector<RutaVehiculo> separarRuta(const vector<Nodo>& rutaConcatenada, const Inst
         }
     }
 
+
+    // for (const auto& ruta : solucion) {
+    //     cout << "Ruta: "; imprimirRuta(ruta.ruta);
+    //     cout << "Calidad: " << ruta.calidadRuta << " Tiempo: " << ruta.tiempoAcumuladoVehiculo << " Clientes: " << ruta.clientesVisitados << endl;
+    // }
+
     return solucion;
 }
 
@@ -775,7 +781,7 @@ pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, con
                 tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoServicio;
 				distanciaAcumulada += distancia;
 
-                if (tiempoAcumulado > instancia->tiempoMaximo || distancia > instancia->distanciaMaxima) {
+                if (tiempoAcumulado > instancia->tiempoMaximo || distanciaAcumulada > instancia->distanciaMaxima) {
                     return make_pair(-1,-1);
                 }
 
@@ -788,7 +794,7 @@ pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, con
                 tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoRecarga;
                 distanciaAcumulada += distancia;
 
-                if (tiempoAcumulado > instancia->tiempoMaximo || distancia > instancia->distanciaMaxima) {
+                if (tiempoAcumulado > instancia->tiempoMaximo || distanciaAcumulada > instancia->distanciaMaxima) {
                     return make_pair(-1,-1);
                 }
                 
@@ -862,6 +868,78 @@ vector<Nodo> mutacionHeuristicSwap(const vector<Nodo>& cromosoma) {
 
 // Algoritmo evolutivo
 
+pair<double,double> verificarUltimaRuta(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
+    // cout << "ruta concatenada: "; imprimirRuta(rutaConcatenada);
+
+    vector<RutaVehiculo> rutasSeparadas = separarRuta(rutaConcatenada, instancia);
+	double calidadTotal = 0;
+	double clientesVisitados = 0;
+
+    for (const auto& rutaVehiculo : rutasSeparadas) {
+        double distanciaAcumulada = 0.0;
+        double tiempoAcumulado = 0.0;
+        Nodo nodoActual = instancia->deposito;
+
+        if (rutaVehiculo.ruta.front().tipo != 'd' || rutaVehiculo.ruta.back().tipo != 'd') {
+            return make_pair(-1,-1);
+        }
+
+        // Recorrer la ruta del vehículo
+        for (size_t i = 0; i < rutaVehiculo.ruta.size(); ++i) {
+            Nodo nodoSiguiente = rutaVehiculo.ruta[i];
+            double distancia = 0.0;
+
+            if (nodoSiguiente.tipo == 'c') {
+                Nodo cliente = instancia->nodosClientes[nodoSiguiente.id - 1];
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, cliente.longitud, cliente.latitud);
+                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoServicio;
+				distanciaAcumulada += distancia;
+
+                if (tiempoAcumulado > instancia->tiempoMaximo || distanciaAcumulada > instancia->distanciaMaxima) {
+                    return make_pair(-1,-1);
+                }
+                
+                cout << "Nodo actual: " << nodoActual.id << " Nodo siguiente: " << cliente.id << " distancia entre nodos: " << distancia <<" Distancia acumulada: " << distanciaAcumulada << " Tiempo: " << tiempoAcumulado << endl;
+
+                calidadTotal += distancia;
+                clientesVisitados++;
+
+            } else if (nodoSiguiente.tipo == 'f') {
+                Nodo estacion = instancia->nodosEstaciones[nodoSiguiente.id];
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, estacion.longitud, estacion.latitud);
+                tiempoAcumulado += (distancia / instancia->velocidad) + instancia->tiempoRecarga;
+                distanciaAcumulada += distancia;
+
+                if (tiempoAcumulado > instancia->tiempoMaximo || distanciaAcumulada > instancia->distanciaMaxima) {
+                    return make_pair(-1,-1);
+                }
+                
+                cout << "Nodo actual: " << nodoActual.id << " Nodo siguiente: " << estacion.id << " distancia entre nodos: " << distancia <<" Distancia acumulada: " << distanciaAcumulada << " Tiempo: " << tiempoAcumulado << " REcarga combustible" << endl;
+
+                calidadTotal += distancia;
+                distanciaAcumulada = 0;
+
+            } else if (nodoSiguiente.tipo == 'd') {
+                distancia = calcularDistanciaHaversine(nodoActual.longitud, nodoActual.latitud, instancia->deposito.longitud, instancia->deposito.latitud);
+                tiempoAcumulado += distancia / instancia->velocidad;
+                distanciaAcumulada += distancia;
+
+                if (distanciaAcumulada > instancia->distanciaMaxima || tiempoAcumulado > instancia->tiempoMaximo) {
+                    return make_pair(-1,-1);		
+                }
+
+                cout << "Nodo actual: " << nodoActual.id << " retornando a deposito " << " distancia entre nodos: " << distancia <<" Distancia acumulada: " << distanciaAcumulada << " Tiempo: " << tiempoAcumulado << endl;
+
+                calidadTotal += distancia;
+            }
+            nodoActual = nodoSiguiente;
+        }
+        cout << "calidad total: " << calidadTotal << endl;
+    }
+
+    return make_pair(calidadTotal, clientesVisitados);
+}
+
 void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* instancia)  {
 
     vector<vector<RutaVehiculo>> poblacion = generarSolucionesIniciales(instancia, cantidadPoblacion);
@@ -880,7 +958,7 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
 
     cout << "Mejor calidad de la poblacion inicial: " << mejorCalidadInicial << endl;
 
-    vector<RutaVehiculo> mejorSolucion;
+    vector<RutaVehiculo> mejorSolucion = mejorSolucionInicial;
 
 	// Iterar el algoritmo evolutivo m veces
     for (int iteracion = 0; iteracion < mIteraciones; ++iteracion) {
@@ -934,14 +1012,16 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
             double calidad = funcionEvaluacion(solucion);
             if (calidad < mejorCalidad) {
                 mejorCalidad = calidad;
-                mejorSolucion = solucion;
+                if (funcionEvaluacion(solucion) < funcionEvaluacion(mejorSolucion)) {
+                    mejorSolucion = solucion;
+                }
             }
         }
 
         cout << "Iteracion " << iteracion + 1 << ": Mejor solucion: " << mejorCalidad << endl;
     }
 
-    auto mejorSol = verificarRutaValida(concatenarRuta(mejorSolucion), instancia);
+    auto mejorSol = verificarUltimaRuta(concatenarRuta(mejorSolucion), instancia);
     if (mejorSol.first != -1) {
         cout << "Mejor solucion final valida: " << mejorSol.first << endl;
     } else {
@@ -951,14 +1031,15 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
 }
 
 
+
 // ---------------------------- MAIN ----------------------------
 
 int main() {
 	srand(time(nullptr));
 
     Instancia* instancia = leerInstancia("instancias/AB101.dat");
-	int cantidadPoblacion = 20;
-    int mIteraciones = 20;
+	int cantidadPoblacion = 50;
+    int mIteraciones = 15;
 
     auto inicio = high_resolution_clock::now();
 
