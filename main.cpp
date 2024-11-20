@@ -11,6 +11,7 @@
 #include <set>
 #include <algorithm>
 #include <filesystem>
+#include <map>
 
 using namespace std;
 using namespace chrono;
@@ -490,9 +491,9 @@ pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, con
     return make_pair(calidadTotal, clientesVisitados);
 }
 
-void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& soluciones, const string& nombreArchivo, const time_point<high_resolution_clock>& inicio) {
+void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& soluciones, const string& nombreArchivo, const time_point<high_resolution_clock>& inicio, int mIteraciones) {
     // Asegurarse de que el directorio 'outputs' existe
-    string carpetaSalida = "outputs/";
+    string carpetaSalida = "outputs_" + to_string(mIteraciones) + "/";
     std::filesystem::create_directories(carpetaSalida);
 
     // Generar la ruta completa del archivo de salida
@@ -577,21 +578,16 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
                 primerClienteRandomIndex = rand() % listaClientes.size();
                 primerClienteRandom = listaClientes[primerClienteRandomIndex];
                 listaClientes.erase(listaClientes.begin() + primerClienteRandomIndex);
-                cout<<"Nuevo cliente random: "<<primerClienteRandom<<endl;
+                //cout<<"Nuevo cliente random: "<<primerClienteRandom<<endl;
             } else {
                 primerClienteRandom = -1;
 			    solucion.push_back(sol);
             }
-
-
-			solucion.push_back(sol);
-            
-			solucion.push_back(sol);
 		}
 		solucionesIniciales.push_back(solucion);
 
-        auto inicio = high_resolution_clock::now();
-        //guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out", inicio);
+        // auto inicio = high_resolution_clock::now();
+        // guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out", inicio);
 
         if (verificarRutaValida(concatenarRuta(solucion), instancia).first == -1) {
             cout << "Solucion invalida" << endl;
@@ -739,7 +735,7 @@ vector<Nodo> crearSub2(const vector<Nodo>& V1, const vector<Nodo>& V2) {
     vector<Nodo> sub2;
 
     for (const auto& nodo : unionV1V2) {
-        if (find(V1.begin(), V1.end(), nodo) == V1.end()) {
+        if (nodo.tipo == 'c' && find(V1.begin(), V1.end(), nodo) == V1.end()) {
             sub2.push_back(nodo);
         }
     }
@@ -767,12 +763,17 @@ vector<Nodo> reverse(const vector<Nodo>& vec) {
 
 vector<Nodo> crearHijoConReemplazo(const vector<Nodo>& parent, vector<Nodo> SC) {
     vector<Nodo> hijo;
-    set<Nodo> elementosSC(SC.begin(), SC.end());
+    map<int, Nodo> nodosSC;
+    for (const auto& nodo : SC) {
+        if (nodo.tipo == 'c') {
+            nodosSC[nodo.id] = nodo;
+        }
+    }
 
     for (const Nodo& nodo : parent) {
-        if (elementosSC.find(nodo) != elementosSC.end() && !SC.empty()) {
-            hijo.push_back(SC.front()); 
-            SC.erase(SC.begin());     
+        if (nodo.tipo == 'c' && nodosSC.find(nodo.id) != nodosSC.end()) {
+            hijo.push_back(nodosSC[nodo.id]);
+            nodosSC.erase(nodo.id);
         } else {
             hijo.push_back(nodo);
         }
@@ -976,17 +977,28 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
     // Mostrar la mejor solución inicial
     double mejorCalidadInicial = std::numeric_limits<double>::max();
     vector<RutaVehiculo> mejorSolucionInicial, sol1, sol2;
+    int cantClientes = 0;
 
     for (const auto& solucion : poblacion) {
         double calidad = funcionEvaluacion(solucion);
         if (calidad < mejorCalidadInicial) {
             mejorCalidadInicial = calidad;
             mejorSolucionInicial = solucion;
+            cantClientes = contarClientes(concatenarRuta(mejorSolucionInicial));
         }
     }
 
 
-    cout << "Mejor calidad de la poblacion inicial: " << mejorCalidadInicial << " Instancia: " << instancia->nombre << endl;
+    cout << "Instancia: " << instancia->nombre << " Clientes: " << cantClientes <<  " Mejor calidad de la poblacion inicial: " << mejorCalidadInicial << endl;
+
+    // Guardar en el archivo 'mejor_inicial.txt'
+    ofstream archivoSalida("soluciones_greedy_" + to_string(mIteraciones) + ".txt", ios::app);
+    if (archivoSalida.is_open()) {
+        archivoSalida << instancia->nombre << " " << fixed << setprecision(2) << mejorCalidadInicial << endl;
+        archivoSalida.close();
+    } else {
+        cerr << "Error al abrir el archivo 'soluciones_greedy.txt'" << endl;
+    }
 
     vector<RutaVehiculo> mejorSolucion = mejorSolucionInicial;
 
@@ -995,6 +1007,7 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
         vector<vector<RutaVehiculo>> nuevaPoblacion;
         int cont = 0;
         // Generar n hijos mejores que los padres
+
         while (nuevaPoblacion.size() < cantidadPoblacion) {
             // Seleccionar 2 soluciones aleatorias mediante selección por ranking
             int indiceSolucion1 = rand() % cantidadPoblacion;
@@ -1005,6 +1018,8 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
 
             vector<Nodo> rutaConcatenada1 = concatenarRuta(solucion1);
             vector<Nodo> rutaConcatenada2 = concatenarRuta(solucion2);
+
+           // cout << "1" << endl;
 
             // Aplicar crossover
             //cout << "nro clientes antes crossover: " << contarClientes(rutaConcatenada1) << "y" << contarClientes(rutaConcatenada2) << endl;
@@ -1022,23 +1037,20 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
             hijo2 = mutacionHeuristicSwap(hijo2);
             //cout << "nro clientes despues heuristic swap: " << contarClientes(hijo1) << "y" << contarClientes(hijo2) << endl;
 
-            if (contarClientes(hijo1) != instancia->numClientes || contarClientes(hijo2) != instancia->numClientes) {
-                cont++;
-                continue;
-            }
-
             // Verificar rutas válidas y agregar a la nueva población si mejoran a los padres
             auto resultado1 = verificarRutaValida(hijo1, instancia);
             auto resultado2 = verificarRutaValida(hijo2, instancia);
 
+            //cout << "Padre 1: " << funcionEvaluacion(solucion1) << " Padre 2: " << funcionEvaluacion(solucion2) << " Hijo 1: " << resultado1.first << " Hijo 2: " << resultado2.first << endl;
+
             if (resultado1.first != -1 && resultado1.first < funcionEvaluacion(solucion1) && resultado1.first < funcionEvaluacion(solucion2)) {
-                cout << "Hijo 1 calidad: " << resultado1.first << endl;
+                //cout << "Hijo 1 calidad: " << resultado1.first << endl;
                 sol1 = separarRuta(hijo1, instancia);
                 nuevaPoblacion.push_back(sol1);
             }
 
             if (resultado2.first != -1 && resultado2.first < funcionEvaluacion(solucion1) && resultado2.first < funcionEvaluacion(solucion2)) {
-                cout << "Hijo 2 calidad: " << resultado2.first << endl;
+                //cout << "Hijo 2 calidad: " << resultado2.first << endl;
                 sol2 = separarRuta(hijo2, instancia);
                 nuevaPoblacion.push_back(sol2);
             }
@@ -1059,7 +1071,7 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
             }
         }
 
-        cout << "Iteracion " << iteracion + 1 << ": Mejor solucion: " << mejorCalidad << " fallos: " << cont << endl;
+        //cout << "Iteracion " << iteracion + 1 << ": Mejor solucion: " << mejorCalidad << " fallos: " << cont << endl;
     }
 
     // auto mejorSol = verificarUltimaRuta(concatenarRuta(mejorSolucion), instancia);
@@ -1068,7 +1080,7 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
     // } else {
     //     cout << "Mejor solucion final: " << endl;
     // }
-    guardarSoluciones(instancia, mejorSolucion, instancia->nombre + ".out", inicio);
+    guardarSoluciones(instancia, mejorSolucion, instancia->nombre + ".out", inicio, mIteraciones);
 }
 
 
@@ -1078,42 +1090,37 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
 int main() {
     srand(time(nullptr));
 
-    // vector<string> nombreInstancias = {
-    //     "instancias/AB101.dat", "instancias/AB102.dat", "instancias/AB103.dat",
-    //     "instancias/AB104.dat", 
-    //     //"instancias/AB105.dat", 
-    //     "instancias/AB106.dat",
-    //     "instancias/AB107.dat", "instancias/AB108.dat", "instancias/AB109.dat",
-    //     "instancias/AB110.dat", "instancias/AB111.dat", "instancias/AB112.dat",
-    //     "instancias/AB113.dat", "instancias/AB114.dat", "instancias/AB115.dat",
-    //     "instancias/AB116.dat", "instancias/AB117.dat", "instancias/AB118.dat",
-    //     "instancias/AB119.dat", "instancias/AB120.dat", 
-    //     "instancias/AB201.dat", "instancias/AB202.dat", "instancias/AB203.dat",
-    //     "instancias/AB204.dat", "instancias/AB205.dat", "instancias/AB206.dat",
-    //     "instancias/AB207.dat", "instancias/AB208.dat", "instancias/AB209.dat",
-    //     "instancias/AB210.dat", "instancias/AB211.dat", "instancias/AB212.dat",
-    //     "instancias/AB213.dat", "instancias/AB214.dat", "instancias/AB215.dat",
-    //     "instancias/AB216.dat", "instancias/AB217.dat", "instancias/AB218.dat",
-    //     "instancias/AB219.dat", "instancias/AB220.dat"
-    // };
-
     vector<string> nombreInstancias = {
-        "instancias/AB101.dat"
+        "instancias/AB101.dat", "instancias/AB102.dat", "instancias/AB103.dat",
+        "instancias/AB104.dat", "instancias/AB105.dat", "instancias/AB106.dat",
+        "instancias/AB107.dat", "instancias/AB108.dat", "instancias/AB109.dat",
+        "instancias/AB110.dat", "instancias/AB111.dat", "instancias/AB112.dat",
+        "instancias/AB113.dat", "instancias/AB114.dat", "instancias/AB115.dat",
+        "instancias/AB116.dat", "instancias/AB117.dat", "instancias/AB118.dat",
+        "instancias/AB119.dat", "instancias/AB120.dat", 
+        "instancias/AB201.dat", "instancias/AB202.dat", "instancias/AB203.dat",
+        "instancias/AB204.dat", "instancias/AB205.dat", "instancias/AB206.dat",
+        "instancias/AB207.dat", "instancias/AB208.dat", "instancias/AB209.dat",
+        "instancias/AB210.dat", "instancias/AB211.dat", "instancias/AB212.dat",
+        "instancias/AB213.dat", "instancias/AB214.dat", "instancias/AB215.dat",
+        "instancias/AB216.dat", "instancias/AB217.dat", "instancias/AB218.dat",
+        "instancias/AB219.dat", "instancias/AB220.dat"
     };
 
-    int mIteraciones = 20;
-    int cantidadPoblacion;
 
-    for (const string& instanciaPath : nombreInstancias) {
+    vector<int> valoresIteraciones = {20, 25, 30}; 
 
-        Instancia* instancia = leerInstancia(instanciaPath);
-        cantidadPoblacion = instancia->numClientes - 5;
+    for (int mIteraciones : valoresIteraciones) {
+        for (const string& instanciaPath : nombreInstancias) {
+            Instancia* instancia = leerInstancia(instanciaPath);
+            int cantidadPoblacion = instancia->numClientes - 5;
 
-        auto inicio = high_resolution_clock::now();
+            auto inicio = high_resolution_clock::now();
 
-        algoritmoEvolutivo(cantidadPoblacion, mIteraciones, instancia, inicio);
+            algoritmoEvolutivo(cantidadPoblacion, mIteraciones, instancia, inicio);
 
-        delete instancia; 
+            delete instancia;
+        }
     }
 
     return 0;
