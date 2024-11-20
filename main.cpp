@@ -1108,7 +1108,10 @@ int main() {
     };
 
 
-    vector<int> valoresIteraciones = {20, 25, 30}; 
+    vector<int> valoresIteraciones = {
+        //20, 
+        //25, 
+        30}; 
 
     for (int mIteraciones : valoresIteraciones) {
         for (const string& instanciaPath : nombreInstancias) {
