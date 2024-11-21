@@ -415,18 +415,11 @@ vector<RutaVehiculo> separarRuta(const vector<Nodo>& rutaConcatenada, const Inst
         }
     }
 
-
-    // for (const auto& ruta : solucion) {
-    //     cout << "Ruta: "; imprimirRuta(ruta.ruta);
-    //     cout << "Calidad: " << ruta.calidadRuta << " Tiempo: " << ruta.tiempoAcumuladoVehiculo << " Clientes: " << ruta.clientesVisitados << endl;
-    // }
-
     return solucion;
 }
 
 
 pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, const Instancia* instancia) {
-    // cout << "ruta concatenada: "; imprimirRuta(rutaConcatenada);
 
     vector<RutaVehiculo> rutasSeparadas = separarRuta(rutaConcatenada, instancia);
 	double calidadTotal = 0;
@@ -440,7 +433,7 @@ pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, con
         if (rutaVehiculo.ruta.front().tipo != 'd' || rutaVehiculo.ruta.back().tipo != 'd') {
             return make_pair(-1,-1);
         }
-        // cout << "ruta vehiculo: "; imprimirRuta(rutaVehiculo.ruta);
+
         // Recorrer la ruta del vehículo
         for (size_t i = 0; i < rutaVehiculo.ruta.size(); ++i) {
             Nodo nodoSiguiente = rutaVehiculo.ruta[i];
@@ -586,12 +579,6 @@ vector<vector<RutaVehiculo>> generarSolucionesIniciales(const Instancia* instanc
 		}
 		solucionesIniciales.push_back(solucion);
 
-        // auto inicio = high_resolution_clock::now();
-        // guardarSoluciones(instancia, solucion, instancia->nombre + "_" + to_string(i+1) + ".out", inicio);
-
-        if (verificarRutaValida(concatenarRuta(solucion), instancia).first == -1) {
-            cout << "Solucion invalida" << endl;
-        }
 	}
 	return solucionesIniciales;
 }
@@ -723,16 +710,9 @@ pair<vector<Nodo>, vector<Nodo>> crossover(const vector<Nodo>& parent1, const ve
     subruta2 = extraerSubruta(parent2, clienteComun);
     sub2 = crearSub2(sub1, subruta2);
 
-    // cout << "Subruta 1: "; imprimirRuta(sub1);
-    // cout << "Subruta 2: "; imprimirRuta(sub2);
-
     SC1 = concatenate(sub2, sub1);
     SC2 = concatenate(reverse(sub1), reverse(sub2));
 
-    // cout << "SC1: "; imprimirRuta(SC1);
-    // cout << "SC2: "; imprimirRuta(SC2);
-
-    // Crear hijo1 y hijo2 utilizando el reemplazo
     hijo1 = crearHijoConReemplazo(parent1, SC1);
     hijo2 = crearHijoConReemplazo(parent2, SC2);
 
@@ -868,7 +848,7 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
         // Generar n hijos mejores que los padres
 
         while (nuevaPoblacion.size() < cantidadPoblacion) {
-            // Seleccionar 2 soluciones aleatorias mediante selección por ranking
+
             int indiceSolucion1 = rand() % cantidadPoblacion;
             int indiceSolucion2 = rand() % cantidadPoblacion;
 
@@ -878,38 +858,25 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
             vector<Nodo> rutaConcatenada1 = concatenarRuta(solucion1);
             vector<Nodo> rutaConcatenada2 = concatenarRuta(solucion2);
 
-           // cout << "1" << endl;
-
-            // Aplicar crossover
-            //cout << "nro clientes antes crossover: " << contarClientes(rutaConcatenada1) << "y" << contarClientes(rutaConcatenada2) << endl;
             auto [hijo1, hijo2] = crossover(rutaConcatenada1, rutaConcatenada2);
-            //cout << "nro clientes despues crossover: " << contarClientes(hijo1) << "y" << contarClientes(hijo2) << endl;
 
             // Aplicar mutaciones a ambos hijos
-            //cout << "nro clientes antes 2opt: " << contarClientes(hijo1) << "y" << contarClientes(hijo1) << endl;
             hijo1 = mutacion2Opt(hijo1);
             hijo2 = mutacion2Opt(hijo2);
-            //cout << "nro clientes despues 2opt: " << contarClientes(hijo1) << "y" << contarClientes(hijo2) << endl;
 
-            //cout << "nro clientes antes heuristic swap: " << contarClientes(hijo1) << "y" << contarClientes(hijo2) << endl;
             hijo1 = mutacionHeuristicSwap(hijo1);
             hijo2 = mutacionHeuristicSwap(hijo2);
-            //cout << "nro clientes despues heuristic swap: " << contarClientes(hijo1) << "y" << contarClientes(hijo2) << endl;
 
-            // Verificar rutas válidas y agregar a la nueva población si mejoran a los padres
             auto resultado1 = verificarRutaValida(hijo1, instancia);
             auto resultado2 = verificarRutaValida(hijo2, instancia);
 
-            //cout << "Padre 1: " << funcionEvaluacion(solucion1) << " Padre 2: " << funcionEvaluacion(solucion2) << " Hijo 1: " << resultado1.first << " Hijo 2: " << resultado2.first << endl;
 
             if (resultado1.first != -1 && resultado1.first < funcionEvaluacion(solucion1) && resultado1.first < funcionEvaluacion(solucion2)) {
-                //cout << "Hijo 1 calidad: " << resultado1.first << endl;
                 sol1 = separarRuta(hijo1, instancia);
                 nuevaPoblacion.push_back(sol1);
             }
 
             if (resultado2.first != -1 && resultado2.first < funcionEvaluacion(solucion1) && resultado2.first < funcionEvaluacion(solucion2)) {
-                //cout << "Hijo 2 calidad: " << resultado2.first << endl;
                 sol2 = separarRuta(hijo2, instancia);
                 nuevaPoblacion.push_back(sol2);
             }
@@ -929,16 +896,7 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
                 }
             }
         }
-
-        //cout << "Iteracion " << iteracion + 1 << ": Mejor solucion: " << mejorCalidad << " fallos: " << cont << endl;
     }
-
-    // auto mejorSol = verificarUltimaRuta(concatenarRuta(mejorSolucion), instancia);
-    // if (mejorSol.first != -1) {
-    //     cout << "Mejor solucion final valida: " << mejorSol.first << " visitados: " << mejorSol.second << endl;
-    // } else {
-    //     cout << "Mejor solucion final: " << endl;
-    // }
     guardarSoluciones(instancia, mejorSolucion, instancia->nombre + ".out", inicio, mIteraciones);
 }
 
