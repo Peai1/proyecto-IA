@@ -9,7 +9,7 @@
 - **`Makefile`**: Sistema de compilación para automatizar la construcción y ejecución del proyecto.
 - **`resultados_comparacion.csv`**: Archivo .csv que contiene las comparaciones para al ejecución de todas las instancias con 20, 25 y 30 iteraciones
 - **`script.py`**: Archivo python que crea el .csv mencionado en base a los resultados
-- **Carpeta resultados**: Contiene una carpeta outputs_<nro_iteraciones> que contiene los outputs para ejecutar el algoritmo con el nro_iteraciones correspondiente. También se tiene un archivo .txt soluciones_greedy_<nro_iteraciones> el cual contiene la mejor solucion inicial greedy para cada instancia en la cantidad de iteraciones correspondientes
+- **Carpeta resultados**: Contiene una carpeta `outputs_<nro_iteraciones>` que contiene los outputs para ejecutar el algoritmo con el *nro_iteraciones* correspondiente. También se tiene un archivo .txt `soluciones_greedy_<nro_iteraciones>.txt` el cual contiene la mejor solucion inicial greedy para cada instancia en la cantidad de iteraciones correspondientes
 ## Uso del `Makefile`
 
 1. Compilar el Proyecto
