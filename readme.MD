@@ -42,6 +42,7 @@ Se ejecuta con estos valores por defecto:
 Ejecutar esto resulta con el output <nombre_instancia>.out con el resultado del algoritmo evolutivo.
 
 3. Limpiar archivos
+
 Para limpiar los archivos se puede escribir el comando
 ```bash
 make clean
