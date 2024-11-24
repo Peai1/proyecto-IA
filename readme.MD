@@ -30,3 +30,17 @@ Ejemplo:
 ```bash
 make run INSTANCIA=instancias/AB101.dat ITERACIONES=30
 ```
+
+Si se ejecuta 
+```bash
+make run
+```
+Se ejecuta con estos valores por defecto: 
+<nombre_instancia> = AB101
+<numero_iteraciones> = 20
+
+3. Limpiar archivos
+Para limpiar los archivos se puede escribir el comando
+```bash
+make clean
+```
