@@ -1,3 +1,6 @@
+#ifndef CROSSOVER
+#define CROSSOVER
+
 #include "structs.cpp"
 
 // CROSSOVER PAPER
@@ -20,7 +23,6 @@ vector<Nodo> extraerSubruta(const vector<Nodo>& parent, const Nodo& clienteComun
     bool clienteEncontrado = false;
     int cont = 0;
 
-    // Buscar el depósito antes del cliente común para iniciar la subruta
     for (size_t i = 0; i < parent.size(); ++i) {
         const Nodo& nodo = parent[i];
 
@@ -125,3 +127,5 @@ pair<vector<Nodo>, vector<Nodo>> crossover(const vector<Nodo>& parent1, const ve
 
     return {hijo1, hijo2};
 }
+
+#endif

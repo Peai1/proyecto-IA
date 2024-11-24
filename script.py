@@ -4,7 +4,7 @@ import pandas as pd
 
 def leer_soluciones_greedy(ruta_base, iteraciones):
     """Leer el archivo soluciones_greedy para un número específico de iteraciones."""
-    archivo = os.path.join(ruta_base, f"soluciones_greedy_{iteraciones}.txt")
+    archivo = os.path.join(ruta_base, f"resultados/soluciones_greedy_{iteraciones}.txt")
     soluciones_greedy = {}
     with open(archivo, "r") as file:
         for linea in file:
@@ -15,7 +15,7 @@ def leer_soluciones_greedy(ruta_base, iteraciones):
 
 def leer_output(ruta_base, instancia, iteraciones):
     """Leer el archivo output de una instancia específica para un número de iteraciones."""
-    archivo = os.path.join(ruta_base, f"outputs_{iteraciones}/{instancia}.out")
+    archivo = os.path.join(ruta_base, f"resultados/outputs_{iteraciones}/{instancia}.out")
     mejor_solucion = None
     tiempo_total = 0
     with open(archivo, "r") as file:

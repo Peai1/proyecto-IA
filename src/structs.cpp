@@ -59,13 +59,11 @@ struct Instancia {
 
 double calcularDistanciaHaversine(double longitudActual, double latitudActual, double longitudNodoNext, double latitudNodoNext) {
     double R = 4182.44949; 
-    // Convertir latitudes y longitudes a radianes
     latitudActual = latitudActual * (M_PI / 180.0);
     longitudActual = longitudActual * (M_PI / 180.0);
     latitudNodoNext = latitudNodoNext * (M_PI / 180.0);
     longitudNodoNext = longitudNodoNext * (M_PI / 180.0);
 
-    // Diferencias de latitud y longitud
     double dlat = latitudNodoNext - latitudActual;
     double dlon = longitudNodoNext - longitudActual;
 

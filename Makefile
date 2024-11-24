@@ -3,7 +3,7 @@ TARGET = AE
 SRC = src/AE.cpp
 
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -O2
+CXXFLAGS = -std=c++17
 
 all: $(TARGET)
 
@@ -12,7 +12,7 @@ $(TARGET): $(SRC)
 
 # Ejecutar el programa
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) $(INSTANCIA) $(ITERACIONES)
 
 # Limpiar archivos generados
 clean:
