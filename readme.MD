@@ -7,8 +7,8 @@
 - **`src/mutacion.cpp`**: Implementa los operadores de mutación.
 - **`src/crossover.cpp`**: Contiene las funciones de *crossover* para el algoritmo evolutivo.
 - **`Makefile`**: Sistema de compilación para automatizar la construcción y ejecución del proyecto.
-- **resultados_comparacion.csv**: Archivo .csv que contiene las comparaciones para al ejecución de todas las instancias con 20, 25 y 30 iteraciones
-- **script.py**: Archivo python que crea el .csv mencionado en base a los resultados
+- **`resultados_comparacion.csv`**: Archivo .csv que contiene las comparaciones para al ejecución de todas las instancias con 20, 25 y 30 iteraciones
+- **`script.py`**: Archivo python que crea el .csv mencionado en base a los resultados
 - **Carpeta resultados**: Contiene una carpeta outputs_<nro_iteraciones> que contiene los outputs para ejecutar el algoritmo con el nro_iteraciones correspondiente. También se tiene un archivo .txt soluciones_greedy_<nro_iteraciones> el cual contiene la mejor solucion inicial greedy para cada instancia en la cantidad de iteraciones correspondientes
 ## Uso del `Makefile`
 
@@ -38,6 +38,8 @@ make run
 Se ejecuta con estos valores por defecto: 
 <nombre_instancia> = AB101
 <numero_iteraciones> = 20
+
+Ejecutar esto resulta con el output <nombre_instancia>.out con el resultado del algoritmo evolutivo.
 
 3. Limpiar archivos
 Para limpiar los archivos se puede escribir el comando
