@@ -19,24 +19,14 @@ make
 
 Este comando compila todos los archivos necesarios y genera el ejecutable AE.
 
-2. Limpiar Archivos Compilados
-bash
-Copiar código
-make clean
-Elimina los archivos .o generados y el ejecutable AE.
-
-3. Ejecutar el Proyecto
-bash
-Copiar código
+2. Ejecutar el Proyecto
+```bash
 make run INSTANCIA=instancias/<nombre_instancia>.dat ITERACIONES=<numero_iteraciones>
+```
 Este comando compila (si es necesario) y ejecuta el programa con una instancia y un número de iteraciones específicos.
 
 Ejemplo:
 
-bash
-Copiar código
-make run INSTANCIA=instancias/AB101.dat ITERACIONES=30
-
-### Compilar el Proyecto
 ```bash
-make
+make run INSTANCIA=instancias/AB101.dat ITERACIONES=30
+```
