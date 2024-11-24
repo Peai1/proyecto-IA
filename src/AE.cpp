@@ -537,13 +537,13 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
 
     cout << "Instancia: " << instancia->nombre << " Clientes: " << cantClientes <<  " Mejor calidad de la poblacion inicial: " << mejorCalidadInicial << " Iteraciones: " << mIteraciones << endl;
 
-    ofstream archivoSalida("soluciones_greedy_" + to_string(mIteraciones) + ".txt", ios::app);
-    if (archivoSalida.is_open()) {
-        archivoSalida << instancia->nombre << " " << fixed << setprecision(2) << mejorCalidadInicial << endl;
-        archivoSalida.close();
-    } else {
-        cerr << "Error al abrir el archivo 'soluciones_greedy.txt'" << endl;
-    }
+    // ofstream archivoSalida("soluciones_greedy_" + to_string(mIteraciones) + ".txt", ios::app);
+    // if (archivoSalida.is_open()) {
+    //     archivoSalida << instancia->nombre << " " << fixed << setprecision(2) << mejorCalidadInicial << endl;
+    //     archivoSalida.close();
+    // } else {
+    //     cerr << "Error al abrir el archivo 'soluciones_greedy.txt'" << endl;
+    // }
 
     vector<RutaVehiculo> mejorSolucion = mejorSolucionInicial;
 

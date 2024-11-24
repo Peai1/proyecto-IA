@@ -5,6 +5,9 @@ SRC = src/AE.cpp
 CXX = g++
 CXXFLAGS = -std=c++17
 
+INSTANCIA ?= instancias/AB101.dat
+ITERACIONES ?= 20
+
 all: $(TARGET)
 
 $(TARGET): $(SRC)
