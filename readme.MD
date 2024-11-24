@@ -47,5 +47,3 @@ Para limpiar los archivos se puede escribir el comando
 ```bash
 make clean
 ```
-
-## Uso del `Makefile`
