@@ -1,7 +1,5 @@
 # Proyecto de Algoritmo Evolutivo para el GVRP
 
-Este proyecto implementa un algoritmo evolutivo para resolver el problema de enrutamiento de vehículos ecológicos (*Green Vehicle Routing Problem*, GVRP). El proyecto incluye un sistema de compilación y ejecución a través de un `Makefile`.
-
 ## Archivos Principales
 
 - **`src/AE.cpp`**: Archivo principal donde se ejecuta el algoritmo evolutivo.
