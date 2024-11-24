@@ -1,88 +1,14 @@
-#include <iostream>
-#include <vector>
-#include <cmath>
 #include <fstream>
-#include <sstream>
 #include <chrono>
 #include <iomanip>
-#include <limits>
 #include <cstdlib>
 #include <iomanip> 
-#include <set>
-#include <algorithm>
 #include <filesystem>
-#include <map>
-
-using namespace std;
-using namespace chrono;
-
-struct Nodo {
-    int id;
-    char tipo;
-    double longitud;
-    double latitud;
-
-    bool operator==(const Nodo& other) const {
-        return id == other.id && tipo == other.tipo;
-    }
-
-    bool operator<(const Nodo& other) const {
-        if (tipo != other.tipo) return tipo < other.tipo;
-        return id < other.id;
-    }
-};
-
-struct RutaVehiculo{
-	vector<Nodo> ruta;
-	double tiempoAcumuladoVehiculo = 0;
-	double calidadRuta = 0;
-	int clientesVisitados = 0;
-
-	RutaVehiculo(const vector<Nodo>& ruta, double tiempoAcumuladoVehiculo, 
-		double calidadRuta, int clientesVisitados){
-		this->ruta = ruta;
-		this->tiempoAcumuladoVehiculo = tiempoAcumuladoVehiculo;
-		this->calidadRuta = calidadRuta;
-		this->clientesVisitados = clientesVisitados;
-	}
-};
-
-struct Instancia {
-    string nombre;
-    int numClientes;
-    int numEstaciones;
-    double tiempoMaximo;
-    double distanciaMaxima;
-    double velocidad;
-    double tiempoServicio;
-    double tiempoRecarga;
-    vector<Nodo> nodosClientes;
-    vector<Nodo> nodosEstaciones;
-    Nodo deposito;
-};
+#include "structs.cpp"
+#include "crossover.cpp"
+#include "mutacion.cpp"
 
 using namespace chrono;
-
-// Distancia haversine
-double calcularDistanciaHaversine(double longitudActual, double latitudActual, double longitudNodoNext, double latitudNodoNext) {
-    double R = 4182.44949; 
-    // Convertir latitudes y longitudes a radianes
-    latitudActual = latitudActual * (M_PI / 180.0);
-    longitudActual = longitudActual * (M_PI / 180.0);
-    latitudNodoNext = latitudNodoNext * (M_PI / 180.0);
-    longitudNodoNext = longitudNodoNext * (M_PI / 180.0);
-
-    // Diferencias de latitud y longitud
-    double dlat = latitudNodoNext - latitudActual;
-    double dlon = longitudNodoNext - longitudActual;
-
-    // Formula de Haversine
-    double a = pow(sin(dlat / 2), 2) + cos(latitudActual) * cos(latitudNodoNext) * pow(sin(dlon / 2), 2);
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    double distance = R * c;
-
-    return distance;
-}
 
 // Leer la instancia desde un archivo
 Instancia* leerInstancia(const string &nombreArchivo) {
@@ -189,8 +115,6 @@ RutaVehiculo crearSolucionInicial(const Instancia* instancia, vector<int>& nodos
 	double tiempoVehiculoAcumulado = 0;
 	double distanciaAlDeposito = 0;
 	double distanciaMinimaEncontrada = 99999999999;
-	double latitudActual, longitudActual;
-	double latitudNodoNext, longitudNodoNext;
 	double tiempoAFS; // tiempo hasta AFS + AFS->deposito
 	double distanciaAFS; // distancia a la estacion de servicio para regresar
 	double distanciaAFsDeposito; // distancia de la estacion de servicio al deposito para regresar
@@ -486,7 +410,7 @@ pair<double,double> verificarRutaValida(const vector<Nodo>& rutaConcatenada, con
 
 void guardarSoluciones(const Instancia* instancia, const vector<RutaVehiculo>& soluciones, const string& nombreArchivo, const time_point<high_resolution_clock>& inicio, int mIteraciones) {
     // Asegurarse de que el directorio 'outputs' existe
-    string carpetaSalida = "outputs_" + to_string(mIteraciones) + "/";
+    string carpetaSalida = "resultados/outputs_" + to_string(mIteraciones) + "/";
     std::filesystem::create_directories(carpetaSalida);
 
     // Generar la ruta completa del archivo de salida
@@ -592,215 +516,10 @@ int funcionEvaluacion(const vector<RutaVehiculo>& solucion) {
 	return calidadTotal;
 }
 
-// CROSSOVER PAPER
-
-Nodo seleccionarClienteComun(const vector<Nodo>& parent1, const vector<Nodo>& parent2) {
-    vector<Nodo> clientesComunes;
-
-    for (const auto& nodo1 : parent1) {
-        if (nodo1.tipo == 'c' && find(parent2.begin(), parent2.end(), nodo1) != parent2.end()) {
-            clientesComunes.push_back(nodo1);
-        }
-    }
-
-    int indiceAleatorio = rand() % clientesComunes.size();
-    return clientesComunes[indiceAleatorio];
-}
-
-vector<Nodo> extraerSubruta(const vector<Nodo>& parent, const Nodo& clienteComun) {
-    vector<Nodo> subruta;
-    bool clienteEncontrado = false;
-    bool dentroDeSubruta = false;
-    int cont = 0;
-
-    // Buscar el depósito antes del cliente común para iniciar la subruta
-    for (size_t i = 0; i < parent.size(); ++i) {
-        const Nodo& nodo = parent[i];
-
-        if (nodo.tipo == 'c' && nodo == clienteComun) {
-            clienteEncontrado = true;
-        }
-
-        if (nodo.tipo == 'd'){
-            cont++;
-            if (cont == 2 && clienteEncontrado) {
-                break;
-            } else {
-                subruta.clear();
-                cont = 1;
-            }
-        }
-
-        if (nodo.tipo != 'd'){
-            subruta.push_back(nodo);
-        }
-    }
-
-    return subruta;
-}
-
-void imprimirRuta(const vector<Nodo>& ruta) {
-    for (const Nodo& nodo : ruta) {
-        if (nodo.tipo == 'd') cout << "d0 ";
-        else if (nodo.tipo == 'c') cout << "c" << nodo.id << " ";
-        else if (nodo.tipo == 'f') cout << "f" << nodo.id << " ";
-    }
-    cout << endl;
-}
-
-vector<Nodo> crearSub2(const vector<Nodo>& V1, const vector<Nodo>& V2) {
-    set<Nodo> unionV1V2(V2.begin(), V2.end());
-    vector<Nodo> sub2;
-
-    for (const auto& nodo : unionV1V2) {
-        if (nodo.tipo == 'c' && find(V1.begin(), V1.end(), nodo) == V1.end()) {
-            sub2.push_back(nodo);
-        }
-    }
-
-    return sub2;
-}
-
-vector<Nodo> concatenate(const vector<Nodo>& vec1, const vector<Nodo>& vec2) {
-    vector<Nodo> result = vec1;
-
-    if (!result.empty() && !vec2.empty() && result.back().tipo == 'd' && vec2.front().tipo == 'd') {
-        result.insert(result.end(), vec2.begin() + 1, vec2.end());
-    } else {
-        result.insert(result.end(), vec2.begin(), vec2.end());
-    }
-
-    return result;
-}
-
-vector<Nodo> reverse(const vector<Nodo>& vec) {
-    vector<Nodo> reversedVec = vec;
-    reverse(reversedVec.begin(), reversedVec.end());
-    return reversedVec;
-}
-
-vector<Nodo> crearHijoConReemplazo(const vector<Nodo>& parent, vector<Nodo> SC) {
-    vector<Nodo> hijo;
-    map<int, Nodo> nodosSC;
-    for (const auto& nodo : SC) {
-        if (nodo.tipo == 'c') {
-            nodosSC[nodo.id] = nodo;
-        }
-    }
-
-    for (const Nodo& nodo : parent) {
-        if (nodo.tipo == 'c' && nodosSC.find(nodo.id) != nodosSC.end()) {
-            hijo.push_back(nodosSC[nodo.id]);
-            nodosSC.erase(nodo.id);
-        } else {
-            hijo.push_back(nodo);
-        }
-    }
-
-    return hijo;
-}
-
-
-pair<vector<Nodo>, vector<Nodo>> crossover(const vector<Nodo>& parent1, const vector<Nodo>& parent2) {
-    vector<Nodo> hijo1, hijo2, sub1, subruta2, sub2, SC1, SC2;
-
-    Nodo clienteComun = seleccionarClienteComun(parent1, parent2);
-
-    sub1 = extraerSubruta(parent1, clienteComun);
-    subruta2 = extraerSubruta(parent2, clienteComun);
-    sub2 = crearSub2(sub1, subruta2);
-
-    SC1 = concatenate(sub2, sub1);
-    SC2 = concatenate(reverse(sub1), reverse(sub2));
-
-    hijo1 = crearHijoConReemplazo(parent1, SC1);
-    hijo2 = crearHijoConReemplazo(parent2, SC2);
-
-    return {hijo1, hijo2};
-}
-
-// mutacion 2-opt
-
-vector<Nodo> mutacion2Opt(const vector<Nodo>& rutaOriginal) {
-    vector<Nodo> rutaMutada = rutaOriginal;
-    size_t n = rutaMutada.size();
-
-    // Encontrar los índices de los depósitos para evitar alterarlos
-    vector<size_t> indicesDepositos;
-    for (size_t i = 0; i < n; ++i) {
-        if (rutaMutada[i].tipo == 'd') {
-            indicesDepositos.push_back(i);
-        }
-    }
-
-    // Seleccionar dos puntos de corte aleatorios entre los depósitos
-    size_t start, end;
-    do {
-        start = rand() % n;
-        end = rand() % n;
-        // Asegurarse de que start y end están en posiciones válidas y no contienen depósitos
-    } while (start >= end || find(indicesDepositos.begin(), indicesDepositos.end(), start) != indicesDepositos.end() ||
-             find(indicesDepositos.begin(), indicesDepositos.end(), end) != indicesDepositos.end());
-
-    // Aplicar el intercambio 2-opt invirtiendo la subruta entre start y end
-    reverse(rutaMutada.begin() + start, rutaMutada.begin() + end + 1);
-
-    return rutaMutada;
-}
-
-
-// mutacion heuristic swap paper
-
-// Función para aplicar la mutación Heuristic-Swap
-vector<Nodo> mutacionHeuristicSwap(const vector<Nodo>& cromosoma) {
-    vector<Nodo> cromosomaMutado = cromosoma;
-    size_t n = cromosomaMutado.size();
-
-    // Encontrar todos los clientes en el cromosoma
-    vector<size_t> indicesClientes;
-    for (size_t i = 0; i < n; ++i) {
-        if (cromosomaMutado[i].tipo == 'c') {
-            indicesClientes.push_back(i);
-        }
-    }
-
-    // Seleccionar un cliente aleatorio
-    if (indicesClientes.empty()) {
-        return cromosomaMutado; // No hay clientes para mutar
-    }
-
-    size_t indexCi = indicesClientes[rand() % indicesClientes.size()];
-    Nodo clienteCi = cromosomaMutado[indexCi];
-
-    // Buscar el cliente Cj más cercano de una ruta diferente
-    double distanciaMinima = numeric_limits<double>::max();
-    size_t indexCj = indexCi; // Inicializar con el mismo índice para evitar auto-intercambio
-
-    for (size_t i = 0; i < n; ++i) {
-        if (i != indexCi && cromosomaMutado[i].tipo == 'c') {
-            double distancia = calcularDistanciaHaversine(clienteCi.longitud, clienteCi.latitud, cromosomaMutado[i].longitud, cromosomaMutado[i].latitud);
-            if (distancia < distanciaMinima) {
-                distanciaMinima = distancia;
-                indexCj = i;
-            }
-        }
-    }
-
-    // Intercambiar las posiciones de los clientes Ci y Cj
-    if (indexCj != indexCi) {
-        swap(cromosomaMutado[indexCi], cromosomaMutado[indexCj]);
-    }
-
-    return cromosomaMutado;
-}
-
-// Algoritmo evolutivo
-
-int contarClientes(const std::vector<Nodo>& cromosoma) {
+int contarClientes(const vector<Nodo>& cromosoma) {
     int contadorClientes = 0;
 
     for (const auto& nodo : cromosoma) {
-        // Verificar si el nodo es un cliente (tipo 'c')
         if (nodo.tipo == 'c') {
             contadorClientes++;
         }
@@ -814,7 +533,7 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
     vector<vector<RutaVehiculo>> poblacion = generarSolucionesIniciales(instancia, cantidadPoblacion);
 
     // Mostrar la mejor solución inicial
-    double mejorCalidadInicial = std::numeric_limits<double>::max();
+    double mejorCalidadInicial = numeric_limits<double>::max();
     vector<RutaVehiculo> mejorSolucionInicial, sol1, sol2;
     int cantClientes = 0;
 
@@ -844,10 +563,9 @@ void algoritmoEvolutivo(int cantidadPoblacion, int mIteraciones, Instancia* inst
 	// Iterar el algoritmo evolutivo m veces
     for (int iteracion = 0; iteracion < mIteraciones; ++iteracion) {
         vector<vector<RutaVehiculo>> nuevaPoblacion;
-        int cont = 0;
         // Generar n hijos mejores que los padres
 
-        while (nuevaPoblacion.size() < cantidadPoblacion) {
+        while (static_cast<int>(nuevaPoblacion.size()) < cantidadPoblacion) {
 
             int indiceSolucion1 = rand() % cantidadPoblacion;
             int indiceSolucion2 = rand() % cantidadPoblacion;

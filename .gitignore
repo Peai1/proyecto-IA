@@ -1,28 +1,20 @@
-# Ignorar todo por defecto
 *
 
 !.gitignore
 
-# Exceptuar main.cpp
-!main.cpp
-
-# Exceptuar la carpeta instancias y todo su contenido
 !instancias/
 !instancias/**
 
-!outputs_20/
-!outputs_20/**
-
-!outputs_25/
-!outputs_25/**
-
-!outputs_30/
-!outputs_30/**
-
-!soluciones_greedy_20.txt
-!soluciones_greedy_25.txt
-!soluciones_greedy_30.txt
+!resultados/
+!resultados/**
 
 !resultados_comparacion.csv
-
 !script.py
+
+!src/
+!src/structs.cpp
+!src/crossover.cpp
+!src/mutacion.cpp
+!src/AE.cpp
+
+!Makefile
