@@ -13,9 +13,9 @@ Este proyecto implementa un algoritmo evolutivo para resolver el problema de enr
 ## Uso del `Makefile`
 
 1. Compilar el Proyecto
-bash
-Copiar código
+```bash
 make
+
 Este comando compila todos los archivos necesarios y genera el ejecutable AE.
 
 2. Limpiar Archivos Compilados
