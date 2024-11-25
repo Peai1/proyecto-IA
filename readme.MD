@@ -27,7 +27,7 @@ Este comando compila (si es necesario) y ejecuta el programa con una instancia y
 Ejemplo:
 
 ```bash
-make run INSTANCIA=instancias/AB101.dat ITERACIONES=30
+make run INSTANCIA=instancias/AB101.dat ITERACIONES=20
 ```
 
 Si se ejecuta 
