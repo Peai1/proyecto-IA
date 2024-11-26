@@ -22,7 +22,7 @@ Este comando compila todos los archivos necesarios y genera el ejecutable AE.
 ```bash
 make run INSTANCIA=instancias/<nombre_instancia>.dat ITERACIONES=<numero_iteraciones>
 ```
-Este comando compila (si es necesario) y ejecuta el programa con una instancia y un número de iteraciones específicos.
+Este comando compila (si es necesario) y ejecuta el programa con una instancia y un número de iteraciones específicos. En INSTACIA= se debe colocar la ruta de la instancia .dat y ITERACIONES= es el número de iteraciones. 
 
 Ejemplo:
 
